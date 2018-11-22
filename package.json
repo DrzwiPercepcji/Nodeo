@@ -1,0 +1,11 @@
+{
+	"name": "nodeo",
+	"main": "server.js",
+	"description": "",
+	"version": "1.0.0",
+	"license": "MIT",
+	"dependencies": {
+		"express": "*",
+		"mustache-express": "*"
+	  }
+}
