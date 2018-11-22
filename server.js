@@ -16,7 +16,7 @@ app.use(express.static('public'));
 app.get('/', function (req, res)
 {
 	res.render('index', {
-		title: 'Hello World!'
+		title: 'Hello World!', videos: ['0', '1', '2', '3', '4', '5']
 	});
 });
 
