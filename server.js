@@ -1,4 +1,4 @@
-const PORT = 8080;
+const PORT = process.env.PORT || 8080;
 const HOST = '0.0.0.0';
 
 let express = require('express');
@@ -10,6 +10,8 @@ app.engine('mustache', mustache());
 
 app.set('view engine', 'mustache');
 app.set('views', __dirname + '/views');
+
+app.use(express.static('public'));
 
 app.get('/', function (req, res)
 {

@@ -6,6 +6,11 @@
 	"license": "MIT",
 	"dependencies": {
 		"express": "*",
-		"mustache-express": "*"
-	  }
+		"mustache-express": "*",
+		"node-sass": "*",
+		"bulma": "*"
+	},
+	"scripts": {
+		"sass:compile": "node-sass ./input.scss ./public/css/main.css"
+	}
 }
