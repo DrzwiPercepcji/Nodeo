@@ -13,12 +13,7 @@ app.set('views', __dirname + '/views');
 
 app.use(express.static('public'));
 
-app.get('/', function (req, res)
-{
-	res.render('index', {
-		title: 'Hello World!', videos: ['0', '1', '2', '3', '4', '5']
-	});
-});
+require('./app/routes.js')(app);
 
 app.listen(PORT, HOST);
 console.log(`Running on http://${HOST}:${PORT}`);

@@ -45,15 +45,17 @@
 				</div>
 			</div>
 		</nav>
+		{{#videos}}
 		<section class="section">
 			<h1 class="title">{{title}}</h1>
 			<h2 class="subtitle">{{subtitle}}</h2>
 			<div class="columns is-desktop is-multiline">
-				{{#videos}}
+				{{#thumbs}}
 					{{> thumb}}
-				{{/videos}}
+				{{/thumbs}}
 			</div>
 		</section>
+		{{/videos}}
 		<footer class="footer">
 			<div class="content has-text-centered">
 				<p>
