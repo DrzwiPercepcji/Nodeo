@@ -8,7 +8,8 @@
 		"express": "*",
 		"mustache-express": "*",
 		"node-sass": "*",
-		"bulma": "*"
+		"bulma": "*",
+		"multer": "*"
 	},
 	"scripts": {
 		"sass:compile": "node-sass ./input.scss ./public/css/main.css"

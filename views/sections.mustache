@@ -1,0 +1,47 @@
+		{{#sections.videos}}
+		<section class="section">
+			<h1 class="title">{{title}}</h1>
+			<h2 class="subtitle">{{subtitle}}</h2>
+			<div class="columns is-desktop is-multiline">
+				{{#videos}}
+					{{> video}}
+				{{/videos}}
+			</div>
+		</section>
+		{{/sections.videos}}
+		
+		{{#sections.upload}}
+		<section class="section">
+			<h1 class="title">{{title}}</h1>
+			<h2 class="subtitle">{{subtitle}}</h2>
+			
+			<form id="upload-form" action="upload" method="post" enctype="multipart/form-data">
+				<div class="field">
+					<div class="file is-centered is-boxed is-medium is-success has-name">
+						<label class="file-label">
+							<input id="file-input" class="file-input" type="file" name="file">
+							<span class="file-cta">
+								<span class="file-icon">
+									<i class="fas fa-upload"></i>
+								</span>
+								<span class="file-label">
+									Upload...
+								</span>
+							</span>
+							<span id="file-name" class="file-name"></span>
+						</label>
+					</div>
+				</div>
+				<div class="field has-addons has-addons-centered">
+					<p class="control">
+						<input class="button" type="submit" value="Submit">
+					</p>
+				</div>
+				<div class="field has-addons has-addons-centered">
+					<p class="control">
+						<progress id="progress" class="progress is-primary" value="0" max="100">0%</progress>
+					</p>
+				</div>
+			</form>
+		</section>
+		{{/sections.upload}}
