@@ -9,7 +9,8 @@
 		"mustache-express": "*",
 		"node-sass": "*",
 		"bulma": "*",
-		"multer": "*"
+		"multer": "*",
+		"shelljs": "*"
 	},
 	"scripts": {
 		"sass:compile": "node-sass ./input.scss ./public/css/main.css"
