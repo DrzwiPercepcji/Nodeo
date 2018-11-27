@@ -10,6 +10,9 @@ services:
       - mongo
     links:
       - mongo
+    volumes:
+      - public-volume:/usr/src/app/public
+      - private-volume:/usr/src/app/db
   mongo:
     container_name: mongo
     image: mongo
@@ -17,6 +20,8 @@ services:
     ports:
       - "27017:27017"
     volumes:
-    - data-volume:/data/db
+      - data-volume:/data/db
 volumes:
   data-volume:
+  public-volume:
+  private-volume:
