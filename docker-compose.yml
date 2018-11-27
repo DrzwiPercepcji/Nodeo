@@ -8,8 +8,15 @@ services:
       - "8080:8080"
     depends_on:
       - mongo
+    links:
+      - mongo
   mongo:
     container_name: mongo
     image: mongo
+    privileged: true
     ports:
       - "27017:27017"
+    volumes:
+    - data-volume:/data/db
+volumes:
+  data-volume:

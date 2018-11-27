@@ -10,7 +10,7 @@
 		"node-sass": "*",
 		"bulma": "*",
 		"multer": "*",
-		"shelljs": "*"
+		"mongoose": "*"
 	},
 	"scripts": {
 		"sass:compile": "node-sass ./input.scss ./public/css/main.css"

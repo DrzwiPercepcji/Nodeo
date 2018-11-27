@@ -1,10 +1,22 @@
+		{{#sections.video}}
+		<section class="section">
+			<h1 class="title">{{title}}</h1>
+			<h2 class="subtitle">{{subtitle}}</h2>
+				{{#video}}
+				<video id="player" controls>
+					<source src="{{{baseurl}}}videos/stream/{{_id}}" type="video/mp4">
+				</video>
+				{{/video}}
+		</section>
+		{{/sections.video}}
+		
 		{{#sections.videos}}
 		<section class="section">
 			<h1 class="title">{{title}}</h1>
 			<h2 class="subtitle">{{subtitle}}</h2>
 			<div class="columns is-desktop is-multiline">
 				{{#videos}}
-					{{> video}}
+					{{> thumb}}
 				{{/videos}}
 			</div>
 		</section>
