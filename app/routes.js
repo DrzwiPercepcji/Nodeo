@@ -3,6 +3,8 @@ module.exports = function(app)
 	let multer  = require('multer')
 	let upload = multer({ dest: 'uploads/' })
 	
+	const { spawn } = require('child_process');
+	
 	function render(res, sections = null)
 	{
 		res.render('layout', {
@@ -10,18 +12,49 @@ module.exports = function(app)
 		});
 	}
 	
-	function saveVideo(video)
+	function spawnProcess(str)
 	{
-		console.log('gowno');
-		video
-		.setVideoSize('1280x?', true, true)
-		.save('./db/videos/test.mp4', function (error, file)
-		{
-			if(error)
-				console.log('Error:' + error);
-				
-			else
-				console.log('Done.');
+		let parts = str.split(" ");
+		
+		let command = parts[0];
+		let params = parts.slice(1);
+		
+		return process = spawn(command, params);
+	}
+	
+	function saveVideo(path)
+	{
+		let command = 'ffmpeg -y -i ' + path + ' -s 1280x720 -c:a copy db/videos/test.mp4 -hide_banner';
+		let process = spawnProcess(command);
+		
+		process.stdout.on('data', (data) => {
+			console.log(`stdout: ${data}`);
+		});
+		
+		process.stderr.on('data', (data) => {
+			console.log(`stderr: ${data}`);
+		});
+		
+		process.on('close', (code) => {
+			console.log(`child process exited with code ${code}`);
+		});
+	}
+	
+	function saveThumb(path)
+	{
+		let command = 'ffmpeg -y -i ' + path + ' -s 1280x720 -vf thumbnail,scale=1280:720 -frames:v 1 public/images/thumbs/test.jpg -hide_banner';
+		let process = spawnProcess(command);
+		
+		process.stdout.on('data', (data) => {
+			console.log(`stdout: ${data}`);
+		});
+		
+		process.stderr.on('data', (data) => {
+			console.log(`stderr: ${data}`);
+		});
+		
+		process.on('close', (code) => {
+			console.log(`child process exited with code ${code}`);
 		});
 	}
 	
@@ -95,16 +128,10 @@ module.exports = function(app)
 	
 	app.post('/upload', upload.single('file'), function(req, res)
 	{
-		let command = 'ffmpeg -i ' + req.file.path + ' -s 640x480 -c:a copy db/videos/test.mp4';
+		let path = req.file.path;
 		
-		const { exec } = require('child_process');
-		
-		exec(command, function(code, stdout, stderr)
-		{
-			console.log('Exit code:', code);
-			console.log('Program output:', stdout);
-			console.log('Program stderr:', stderr);
-		});
+		saveVideo(path);
+		saveThumb(path);
 		
 		render(res);
 	});
