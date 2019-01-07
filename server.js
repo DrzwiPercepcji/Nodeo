@@ -3,6 +3,8 @@ const HOST = '0.0.0.0';
 
 const { spawn } = require('child_process');
 const express = require('express');
+const passport = require('passport');
+const flash = require('connect-flash');
 const app = express();
 
 app._render = function(req, res, sections = null)
@@ -24,11 +26,23 @@ app._spawn = function(str)
 };
 
 global.app = app;
+global.passport = passport;
 
 const mongoose = require('mongoose');
 const mustache = require('mustache-express');
 
+const cookieParser = require('cookie-parser');
+const bodyParser = require('body-parser');
+const session = require('express-session');
+const morgan = require('morgan');
+
 let configDB = require('./config/database.js');
+require('./config/passport');
+
+app.use(morgan('dev'));
+app.use(cookieParser());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 let connectWithRetry = function()
 {

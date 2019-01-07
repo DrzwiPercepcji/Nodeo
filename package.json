@@ -6,11 +6,18 @@
 	"license": "MIT",
 	"dependencies": {
 		"express": "*",
+		"express-session": "*",
 		"mustache-express": "*",
 		"node-sass": "*",
 		"bulma": "*",
 		"multer": "*",
-		"mongoose": "*"
+		"mongoose": "*",
+		"passport": "*",
+		"passport-local": "*",
+		"connect-flash": "*",
+		"bcrypt-nodejs": "*",
+		"morgan": "*",
+		"cookie-parser": "*"
 	},
 	"scripts": {
 		"sass:compile": "node-sass ./input.scss ./public/css/main.css"
