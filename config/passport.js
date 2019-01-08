@@ -1,7 +1,7 @@
 var LocalStrategy = require('passport-local').Strategy;
 var User = require('../app/models/user');
 
-module.exports = function()
+module.exports = function(passport)
 {
 	passport.serializeUser(function(user, done)
 	{
@@ -34,7 +34,7 @@ module.exports = function()
 					return done(null, false, req.flash('loginMessage', 'No user found.'));
 				
 				if (!user.validPassword(password))
-					return done(null, false, req.flash('loginMessage', 'Oops! Wrong password.'));
+					return done(null, false, req.flash('loginMessage', 'Wrong password.'));
 				
 				return done(null, user);
 			});
@@ -52,14 +52,14 @@ module.exports = function()
 		{
 			if (!req.user)
 			{
-				User.findOne({ 'local.username' :  username }, function(err, user)
+				User.findOne({ 'local.username' : username }, function(err, user)
 				{
 					if (err)
 						return done(err);
-						
+					
 					if (user)
 					{
-						return done(null, false, req.flash('signupMessage', 'That email is already taken.'));
+						return done(null, false, req.flash('signupMessage', 'Username is already taken.'));
 					}
 					else
 					{
@@ -80,14 +80,14 @@ module.exports = function()
 			}
 			else if (!req.user.local.username)
 			{
-				User.findOne({ 'local.username' :  username }, function(err, user)
+				User.findOne({ 'local.username' : username }, function(err, user)
 				{
 					if (err)
 						return done(err);
 					
 					if (user)
 					{
-						return done(null, false, req.flash('loginMessage', 'That email is already taken.'));
+						return done(null, false, req.flash('loginMessage', 'Username is already taken.'));
 					}
 					else
 					{

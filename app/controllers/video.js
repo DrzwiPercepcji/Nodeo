@@ -1,3 +1,4 @@
+const User = require('../models/user');
 const Video = require('../models/video');
 
 function saveVideo(path, id)
@@ -56,13 +57,29 @@ exports.main = function(req, res)
 	});
 };
 
+exports.popular = function(req, res)
+{
+	Video.find({}, function(err, docs)
+	{
+		let sections = {
+			videos: {
+				title: "Popular videos",
+				videos: docs
+			}
+		};
+		
+		app._render(req, res, sections);
+	});
+};
+
 exports.create = function(req, res)
 {
 	let path = req.file.path;
 	
 	let video = new Video(
 		{
-			name: "Test video"
+			name: "Test video",
+			user: req.user.id
         }
 	);
 	

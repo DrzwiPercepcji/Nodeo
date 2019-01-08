@@ -1,3 +1,18 @@
+		{{#sections.profile}}
+		<section class="section">
+			<h1 class="title">{{title}}</h1>
+			<h2 class="subtitle">{{subtitle}}</h2>
+			
+			<form action="{{{baseurl}}}user/logout" method="post">
+				<div class="field has-addons has-addons-centered">
+					<p class="control">
+						<a class="button" href="{{{baseurl}}}user/logout">Logout</a>
+					</p>
+				</div>
+			</form>
+		</section>
+		{{/sections.profile}}
+		
 		{{#sections.video}}
 		<section class="section">
 			<h1 class="title">{{title}}</h1>
@@ -27,7 +42,7 @@
 			<h1 class="title">{{title}}</h1>
 			<h2 class="subtitle">{{subtitle}}</h2>
 			
-			<form id="upload-form" action="upload" method="post" enctype="multipart/form-data">
+			<form id="upload-form" action="{{{baseurl}}}videos/upload" method="post" enctype="multipart/form-data">
 				<div class="field">
 					<div class="file is-centered is-boxed is-medium is-success has-name">
 						<label class="file-label">
@@ -57,3 +72,65 @@
 			</form>
 		</section>
 		{{/sections.upload}}
+		
+		{{#sections.signup}}
+		<section class="section">
+			<h1 class="title">{{title}}</h1>
+			<h2 class="subtitle">{{subtitle}}</h2>
+			
+			<form action="{{{baseurl}}}user/signup" method="post">
+				<div class="field has-addons has-addons-centered">
+					<p class="control has-icons-left">
+						<input class="input" name="username" type="text" placeholder="Username">
+						<span class="icon is-small is-left">
+							<i class="fas fa-user"></i>
+						</span>
+					</p>
+				</div>
+				<div class="field has-addons has-addons-centered">
+					<p class="control has-icons-left">
+						<input class="input" name="password" type="password" placeholder="Password">
+						<span class="icon is-small is-left">
+							<i class="fas fa-lock"></i>
+						</span>
+					</p>
+				</div>
+				<div class="field has-addons has-addons-centered">
+					<p class="control">
+						<input class="button" type="submit" value="Sign up">
+					</p>
+				</div>
+			</form>
+		</section>
+		{{/sections.signup}}
+		
+		{{#sections.login}}
+		<section class="section">
+			<h1 class="title">{{title}}</h1>
+			<h2 class="subtitle">{{subtitle}}</h2>
+			
+			<form action="{{{baseurl}}}user/login" method="post">
+				<div class="field has-addons has-addons-centered">
+					<p class="control has-icons-left">
+						<input class="input" name="username" type="text" placeholder="Username">
+						<span class="icon is-small is-left">
+							<i class="fas fa-user"></i>
+						</span>
+					</p>
+				</div>
+				<div class="field has-addons has-addons-centered">
+					<p class="control has-icons-left">
+						<input class="input" name="password" type="password" placeholder="Password">
+						<span class="icon is-small is-left">
+							<i class="fas fa-lock"></i>
+						</span>
+					</p>
+				</div>
+				<div class="field has-addons has-addons-centered">
+					<p class="control">
+						<input class="button" type="submit" value="Login">
+					</p>
+				</div>
+			</form>
+		</section>
+		{{/sections.login}}

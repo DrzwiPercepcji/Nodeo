@@ -9,9 +9,21 @@ const app = express();
 
 app._render = function(req, res, sections = null)
 {
+	let buttons = {};
+	
+	if (req.isAuthenticated())
+	{
+		buttons.profile = true
+	}
+	else
+	{
+		buttons.join = true
+	}
+	
 	res.render('layout', {
 		baseurl: req.protocol + '://' + req.headers.host + '/',
-		sections: sections
+		sections: sections,
+		buttons: buttons
 	});
 };
 
@@ -37,7 +49,7 @@ const session = require('express-session');
 const morgan = require('morgan');
 
 let configDB = require('./config/database.js');
-require('./config/passport');
+require('./config/passport')(passport);
 
 app.use(morgan('dev'));
 app.use(cookieParser());
@@ -72,7 +84,23 @@ app.set('views', __dirname + '/views');
 
 app.use(express.static('public'));
 
+app.use(session(
+{
+	secret: 'f6350b4df1fc48c6caee4883f52ef201',
+	resave: true,
+	saveUninitialized: true
+}));
+app.use(passport.initialize());
+app.use(passport.session());
+app.use(flash());
+
+app.use('/user', require('./app/routes/user'));
 app.use('/videos', require('./app/routes/video'));
+
+app.get('/', function(req, res)
+{
+	res.redirect('/videos');
+});
 
 app.listen(PORT, HOST);
 console.log(`Running on http://${HOST}:${PORT}`);
