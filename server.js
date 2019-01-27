@@ -102,5 +102,10 @@ app.get('/', function(req, res)
 	res.redirect('/videos');
 });
 
+app.get('/admin', function(req, res)
+{
+	res.redirect('/user/admin');
+});
+
 app.listen(PORT, HOST);
 console.log(`Running on http://${HOST}:${PORT}`);

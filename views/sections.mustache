@@ -134,3 +134,27 @@
 			</form>
 		</section>
 		{{/sections.login}}
+		
+		{{#sections.adminVideos}}
+		<section class="section">
+			<h1 class="title">{{title}}</h1>
+			<h2 class="subtitle">{{subtitle}}</h2>
+			<div class="columns is-desktop is-multiline">
+				{{#videos}}
+					{{> adminVideo}}
+				{{/videos}}
+			</div>
+		</section>
+		{{/sections.adminVideos}}
+		
+		{{#sections.adminUsers}}
+		<section class="section">
+			<h1 class="title">{{title}}</h1>
+			<h2 class="subtitle">{{subtitle}}</h2>
+			<div class="columns is-desktop is-multiline">
+				{{#users}}
+					{{> adminUser}}
+				{{/users}}
+			</div>
+		</section>
+		{{/sections.adminUsers}}

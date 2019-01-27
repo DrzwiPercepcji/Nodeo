@@ -19,6 +19,85 @@ exports.main = function(req, res)
 	});
 };
 
+exports.admin = function(req, res)
+{
+	Video.find({}, function(videoErr, videoDocs)
+	{
+		User.find({}, function(userErr, userDocs)
+		{
+			let sections = {
+				adminVideos: {
+					title: "Manage Videos",
+					videos: videoDocs
+				},
+				adminUsers: {
+					title: "Manage Users",
+					users: userDocs
+				}
+			};
+			
+			app._render(req, res, sections);
+		});
+	});
+};
+
+exports.removeVideo = function(req, res)
+{
+	Video.remove({ _id: req.params.videoId }, function(err)
+	{
+		if (err) {
+			console.log(err);
+		}
+	});
+	Video.find({}, function(videoErr, videoDocs)
+	{
+		User.find({}, function(userErr, userDocs)
+		{
+			let sections = {
+				adminVideos: {
+					title: "Manage Videos",
+					videos: videoDocs
+				},
+				adminUsers: {
+					title: "Manage Users",
+					users: userDocs
+				}
+			};
+			
+			app._render(req, res, sections);
+		});
+	});
+};
+
+exports.removeUser = function(req, res)
+{
+	User.remove({ _id: req.params.userId }, function(err)
+	{
+		if (err) {
+			console.log(err);
+		}
+	});
+	
+	Video.find({}, function(videoErr, videoDocs)
+	{
+		User.find({}, function(userErr, userDocs)
+		{
+			let sections = {
+				adminVideos: {
+					title: "Manage Videos",
+					videos: videoDocs
+				},
+				adminUsers: {
+					title: "Manage Users",
+					users: userDocs
+				}
+			};
+			
+			app._render(req, res, sections);
+		});
+	});
+};
+
 exports.signup = function(req, res)
 {
 	let sections = {
