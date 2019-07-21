@@ -7,34 +7,30 @@ const passport = require('passport');
 const flash = require('connect-flash');
 const app = express();
 
-app._render = function(req, res, sections = null)
-{
-	let buttons = {};
-	
-	if (req.isAuthenticated())
-	{
-		buttons.profile = true
-	}
-	else
-	{
-		buttons.join = true
-	}
-	
-	res.render('layout', {
-		baseurl: req.protocol + '://' + req.headers.host + '/',
-		sections: sections,
-		buttons: buttons
-	});
+app._render = function (req, res, sections = null) {
+    let buttons = {};
+
+    if (req.isAuthenticated()) {
+        buttons.profile = true
+    }
+    else {
+        buttons.join = true
+    }
+
+    res.render('layout', {
+        baseurl: req.protocol + '://' + req.headers.host + '/',
+        sections: sections,
+        buttons: buttons
+    });
 };
 
-app._spawn = function(str)
-{
-	let parts = str.split(" ");
-	
-	let command = parts[0];
-	let params = parts.slice(1);
-	
-	return spawn(command, params);
+app._spawn = function (str) {
+    let parts = str.split(" ");
+
+    let command = parts[0];
+    let params = parts.slice(1);
+
+    return spawn(command, params);
 };
 
 global.app = app;
@@ -56,21 +52,18 @@ app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-let connectWithRetry = function()
-{
-	return mongoose.connect(configDB.url,
-	{
-		useNewUrlParser: true,
-		connectTimeoutMS: configDB.timeout
-	},
-	function(error)
-	{
-		if(error)
-		{
-			console.error('Failed to connect to mongo on startup, retrying in 1 sec.');
-			setTimeout(connectWithRetry, configDB.timeout);
-		}
-	});
+let connectWithRetry = function () {
+    return mongoose.connect(configDB.url,
+        {
+            useNewUrlParser: true,
+            connectTimeoutMS: configDB.timeout
+        },
+        function (error) {
+            if (error) {
+                console.error('Failed to connect to mongo on startup, retrying in 1 sec.');
+                setTimeout(connectWithRetry, configDB.timeout);
+            }
+        });
 };
 
 connectWithRetry();
@@ -85,11 +78,11 @@ app.set('views', __dirname + '/views');
 app.use(express.static('public'));
 
 app.use(session(
-{
-	secret: 'f6350b4df1fc48c6caee4883f52ef201',
-	resave: true,
-	saveUninitialized: true
-}));
+    {
+        secret: 'f6350b4df1fc48c6caee4883f52ef201',
+        resave: true,
+        saveUninitialized: true
+    }));
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(flash());
@@ -97,14 +90,12 @@ app.use(flash());
 app.use('/user', require('./app/routes/user'));
 app.use('/videos', require('./app/routes/video'));
 
-app.get('/', function(req, res)
-{
-	res.redirect('/videos');
+app.get('/', function (req, res) {
+    res.redirect('/videos');
 });
 
-app.get('/admin', function(req, res)
-{
-	res.redirect('/user/admin');
+app.get('/admin', function (req, res) {
+    res.redirect('/user/admin');
 });
 
 app.listen(PORT, HOST);
