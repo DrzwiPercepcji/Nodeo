@@ -1,37 +1,39 @@
+const fs = require('fs');
+
 const User = require('../models/user');
 const Video = require('../models/video');
 
+const encryption = require('../modules/encryption');
+
 function saveVideo(path, id) {
-    let command = 'ffmpeg -y -i ' + path + ' -s 1280x720 -c:a copy db/videos/' + id + '.mp4 -hide_banner';
-    let proc = app._spawn(command);
+    let command = 'ffmpeg -y -i ' + path + ' -s 1280x720 -c:a copy ' + APP_DATA + 'videos/' + id + '.mp4 -hide_banner';
+    let process = app._spawn(command);
 
-    proc.stdout.on('data', (data) => {
-        console.log(`stdout: ${data}`);
-    });
+    attachLogToProcess(process);
 
-    proc.stderr.on('data', (data) => {
-        console.log(`stderr: ${data}`);
-    });
-
-    proc.on('close', (code) => {
-        console.log(`child process exited with code ${code}`);
+    process.on('close', (code) => {
+        encryption.encryptFile(APP_DATA + 'videos/' + id + '.mp4', '1234123412341234');
     });
 }
 
 function saveThumb(path, id) {
-    let command = 'ffmpeg -y -i ' + path + ' -s 1280x720 -vf thumbnail,scale=1280:720 -frames:v 1 public/images/thumbs/' + id + '.jpg -hide_banner';
-    let proc = app._spawn(command);
+    let command = 'ffmpeg -y -i ' + path + ' -s 1280x720 -vf thumbnail,scale=1280:720 -frames:v 1 ' + APP_DATA + 'videos/thumbs/' + id + '.jpg -hide_banner';
+    let process = app._spawn(command);
 
-    proc.stdout.on('data', (data) => {
-        console.log(`stdout: ${data}`);
+    attachLogToProcess(process);
+}
+
+function attachLogToProcess(process) {
+    process.stdout.on('data', (data) => {
+        console.log(`FFmpeg out: ${data}`);
     });
 
-    proc.stderr.on('data', (data) => {
-        console.log(`stderr: ${data}`);
+    process.stderr.on('data', (data) => {
+        console.log(`FFmpeg error: ${data}`);
     });
 
-    proc.on('close', (code) => {
-        console.log(`child process exited with code ${code}`);
+    process.on('close', (code) => {
+        console.log(`Child process exited with code ${code}.`);
     });
 }
 
@@ -111,13 +113,14 @@ exports.upload = function (req, res) {
 };
 
 exports.stream = function (req, res) {
-    let fs = require('fs');
-    const path = 'db/videos/' + req.params.videoId + '.mp4';
+    const path = APP_DATA + 'videos/' + req.params.videoId + '.mp4';
     const stat = fs.statSync(path);
     const fileSize = stat.size;
     const range = req.headers.range;
 
     if (range) {
+        console.log(range);
+
         const parts = range.replace(/bytes=/, '').split('-');
         const start = parseInt(parts[0], 10);
 
@@ -145,4 +148,16 @@ exports.stream = function (req, res) {
         res.writeHead(200, head);
         fs.createReadStream(path).pipe(res);
     }
+};
+
+exports.thumb = function (request, response) {
+    try {
+        let image = fs.readFileSync(APP_DATA + 'videos/thumbs/' + request.params.thumbName);
+        response.writeHead(200, { 'Content-Type': 'image/jpeg' });
+        response.end(image, 'binary');
+        return;
+    } catch (error) {
+    }
+
+    response.writeHead(404);
 };

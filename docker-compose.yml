@@ -1,4 +1,4 @@
-version: "2"
+version: "3.7"
 services:
   app:
     container_name: app
@@ -11,8 +11,7 @@ services:
     links:
       - mongo
     volumes:
-      - public-volume:/usr/src/app/public
-      - private-volume:/usr/src/app/db
+      - ./data/app:/usr/src/app/data/app
   mongo:
     container_name: mongo
     image: mongo
@@ -20,8 +19,4 @@ services:
     ports:
       - "27017:27017"
     volumes:
-      - data-volume:/data/db
-volumes:
-  data-volume:
-  public-volume:
-  private-volume:
+      - ./data/mongo:/data/db

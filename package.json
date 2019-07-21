@@ -1,25 +1,26 @@
 {
-	"name": "nodeo",
-	"main": "server.js",
-	"description": "",
-	"version": "1.0.0",
-	"license": "MIT",
-	"dependencies": {
-		"express": "*",
-		"express-session": "*",
-		"mustache-express": "*",
-		"node-sass": "*",
-		"bulma": "*",
-		"multer": "*",
-		"mongoose": "*",
-		"passport": "*",
-		"passport-local": "*",
-		"connect-flash": "*",
-		"bcrypt-nodejs": "*",
-		"morgan": "*",
-		"cookie-parser": "*"
-	},
-	"scripts": {
-		"sass:compile": "node-sass ./input.scss ./public/css/main.css"
-	}
+    "name": "nodeo",
+    "main": "server.js",
+    "description": "",
+    "version": "1.0.0",
+    "license": "MIT",
+    "dependencies": {
+        "express": "*",
+        "express-session": "*",
+        "mustache-express": "*",
+        "node-sass": "*",
+        "bulma": "*",
+        "multer": "*",
+        "mongoose": "*",
+        "passport": "*",
+        "passport-local": "*",
+        "connect-flash": "*",
+        "bcryptjs": "*",
+        "morgan": "*",
+        "cookie-parser": "*",
+        "aes-js": "*"
+    },
+    "scripts": {
+        "sass:compile": "node-sass ./input.scss ./public/css/main.css"
+    }
 }

@@ -26,6 +26,7 @@ router.get('/popular', controller.popular);
 router.get('/upload', redirectUserLogin, controller.upload);
 router.get('/video/:videoId', controller.video);
 router.get('/stream/:videoId', controller.stream);
+router.get('/thumb/:thumbName', controller.thumb);
 
 router.post('/upload', redirectUserLogin, upload.single('file'), controller.create);
 

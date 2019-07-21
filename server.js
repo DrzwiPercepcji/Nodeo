@@ -33,6 +33,8 @@ app._spawn = function (str) {
     return spawn(command, params);
 };
 
+global.APP_DATA = 'data/app/';
+
 global.app = app;
 global.passport = passport;
 
