@@ -29,38 +29,10 @@ exports.encryptFile = function (filePath, key) {
 }
 
 exports.decryptFile = function (path, key, start, end, response) {
-    console.log('Requested bytes from: ' + start + ' to: ' + end);
-
-    //let realStart = calculateByte(start, DIRECTION_DECREASE);
-    //let realEnd = calculateByte(end, DIRECTION_INCREASE) - 1;
-
+    let realEnd = calculateByte(end, DIRECTION_INCREASE) - 1;
     let decipher = crypto.createDecipheriv('aes-128-ecb', key, '');
 
-    const reader = fs.createReadStream(path + '.aes');
+    const reader = fs.createReadStream(path + '.aes', { start, realEnd });
 
     reader.pipe(decipher).pipe(response);
-
-    /*
-    let encrypted;
-    
-    reader.on('data', function (chunk) {
-        encrypted += chunk;
-    });
-
-    reader.on('end', function () {
-        console.log('Finished reading bytes from: ' + realStart + ' to: ' + realEnd);
-
-        let decrypted = decipher.update(encrypted, 'binary', 'utf8');
-
-        let sliceStart = start - realStart;
-        let sliceEnd = end - start + sliceStart;
-
-        decrypted.slice(sliceStart, sliceEnd);
-
-        console.log('Sliced bytes from: ' + sliceStart + ' to: ' + sliceEnd);
-
-        response.write(decrypted, 'binary');
-        response.end(null, 'binary');
-    });
-    */
 }
