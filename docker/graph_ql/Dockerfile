@@ -12,6 +12,4 @@ RUN npm install
 
 COPY . .
 
-RUN npm run sass:compile
-
 CMD ["npm", "start"]

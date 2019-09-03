@@ -1,0 +1,16 @@
+{
+    "name": "nodeo_app",
+    "main": "server.js",
+    "description": "",
+    "version": "1.0.0",
+    "license": "MIT",
+    "dependencies": {
+        "express": "*",
+        "mustache-express": "*",
+        "node-sass": "*",
+        "bulma": "*"
+    },
+    "scripts": {
+        "sass:compile": "node-sass ./input.scss ./public/css/main.css"
+    }
+}

@@ -1,17 +1,25 @@
 version: "3.7"
 services:
-  app:
-    container_name: app
+  graph_ql:
+    container_name: graph_ql
     restart: always
-    build: .
+    build: ./docker/graph_ql
     ports:
-      - "8080:8080"
+      - "4000:4000"
     depends_on:
       - mongo
     links:
       - mongo
     volumes:
       - ./data/app:/usr/src/app/data/app
+  app:
+    container_name: app
+    restart: always
+    build: ./docker/app
+    ports:
+      - "8080:8080"
+    depends_on:
+      - graph_ql
   mongo:
     container_name: mongo
     image: mongo

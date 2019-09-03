@@ -1,0 +1,27 @@
+{
+    "name": "nodeo_graph_ql",
+    "main": "server.js",
+    "description": "",
+    "version": "1.0.0",
+    "license": "MIT",
+    "dependencies": {
+        "esm": "*",
+        "dotenv": "*",
+        "graphql": "*",
+        "express": "*",
+        "express-graphql": "*",
+        "express-session": "*",
+        "multer": "*",
+        "mongoose": "*",
+        "passport": "*",
+        "passport-local": "*",
+        "connect-flash": "*",
+        "bcryptjs": "*",
+        "morgan": "*",
+        "cookie-parser": "*",
+        "aes-js": "*"
+    },
+    "scripts": {
+        "start": "node -r esm server.js"
+    }
+}
