@@ -22,7 +22,14 @@ function handleLogout() {
 <template>
   <header class="topbar">
     <div class="topbar-left">
-      <Button v-if="showBack" icon="pi pi-arrow-left" text rounded severity="secondary" @click="router.back()" />
+      <Button
+        v-if="showBack"
+        icon="pi pi-arrow-left"
+        text
+        rounded
+        severity="secondary"
+        @click="router.back()"
+      />
       <h2>{{ title || 'Nodeo' }}</h2>
     </div>
     <div class="topbar-actions">
@@ -34,7 +41,13 @@ function handleLogout() {
         @click="theme.toggle()"
       />
       <span class="username">{{ auth.username }}</span>
-      <Button icon="pi pi-sign-out" text rounded severity="secondary" @click="handleLogout" />
+      <Button
+        icon="pi pi-sign-out"
+        text
+        rounded
+        severity="secondary"
+        @click="handleLogout"
+      />
     </div>
   </header>
 </template>

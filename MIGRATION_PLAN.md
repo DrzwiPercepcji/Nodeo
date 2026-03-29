@@ -236,7 +236,14 @@ CREATE TABLE media (
 
 ### Future
 
-- [ ] Playlist support within collections
+- [x] **Linting (baseline)** — Backend: ESLint 9 + `typescript-eslint` (`recommended`). Frontend: Oxlint (correctness) + ESLint with `eslint-plugin-vue` `flat/recommended` and TypeScript recommended; generated `schema.d.ts` ignored. Run `npm run lint` in each package.
+- [x] **CI/CD (GitHub Actions) — baseline** — `.github/workflows/ci.yml` runs on every PR and push to `master`/`main`: backend `lint` + `typecheck` + `test` (Vitest), frontend `lint` + `type-check` + `build-only` (Node 24).
+- [ ] **CI/CD — extend** — add frontend unit tests and E2E jobs when ready.
+- [x] **Backend unit tests (Vitest)** — `backend/test/*.test.ts`: encryption (derive, wrap/unwrap DEK, CTR counter, stream decipher at aligned offset), `KeyCache` TTL with fake timers, `validateFields`, transcoding helpers (`detectMediaType`, output mime/extension, profile maps). Run `npm run test` in `backend/`.
+- [ ] **Frontend unit / E2E (GHA)** — Vitest + Vue Test Utils; optional Playwright/Cypress; coverage thresholds optional.
+- [ ] **Refactor toward classes / service modules** — extract cohesive logic (encryption, transcoding, S3, media pipeline) from route handlers into small classes or dedicated modules with clear boundaries to improve testability and readability.
+- [ ] **Collection as playlist** — treat a collection (or a dedicated playlist view) as a continuous queue: play all audio in order, auto-advance to the next track, optional shuffle/repeat, mobile-friendly for in-car use (large controls, minimal taps).
+- [ ] **Docker images via GHA** — workflow that builds multi-arch or `linux/amd64` images for `backend` and `frontend`, pushes to GitHub Container Registry (or Docker Hub), tags with semver/git SHA; provide a `docker-compose` example (or override file) that uses only `image:` references so deployers pull pre-built images without cloning the repo for builds.
 - [ ] Audio cover art extraction from ID3 tags
 
 ---

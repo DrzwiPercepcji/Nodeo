@@ -106,25 +106,50 @@ function formatSize(bytes: number | null | undefined): string {
 
 <template>
   <div class="layout">
-    <AppTopbar :title="collection?.name ?? 'Collection'" showBack />
+    <AppTopbar
+      :title="collection?.name ?? 'Collection'"
+      show-back
+    />
 
     <main class="content">
       <div class="content-header">
         <div>
           <h1>{{ collection?.name }}</h1>
-          <p v-if="collection?.description" class="subtitle">{{ collection.description }}</p>
+          <p
+            v-if="collection?.description"
+            class="subtitle"
+          >
+            {{ collection.description }}
+          </p>
         </div>
-        <Button label="Upload" icon="pi pi-upload" @click="showUpload = true" aria-label="Upload media" />
+        <Button
+          label="Upload"
+          icon="pi pi-upload"
+          aria-label="Upload media"
+          @click="showUpload = true"
+        />
       </div>
 
-      <ProgressSpinner v-if="mediaStore.loading" class="spinner" />
+      <ProgressSpinner
+        v-if="mediaStore.loading"
+        class="spinner"
+      />
 
-      <div v-else-if="mediaStore.items.length === 0" class="empty-state">
-        <i class="pi pi-video" style="font-size: 3rem; color: var(--p-text-muted-color)"></i>
+      <div
+        v-else-if="mediaStore.items.length === 0"
+        class="empty-state"
+      >
+        <i
+          class="pi pi-video"
+          style="font-size: 3rem; color: var(--p-text-muted-color)"
+        />
         <p>No media yet. Upload a video or audio file to get started.</p>
       </div>
 
-      <div v-else class="media-grid">
+      <div
+        v-else
+        class="media-grid"
+      >
         <div
           v-for="media in mediaStore.items"
           :key="media.id"
@@ -138,27 +163,60 @@ function formatSize(bytes: number | null | undefined): string {
               :alt="media.title"
               class="thumb"
               loading="lazy"
-            />
-            <div v-else-if="media.status === 'ready' && media.media_type === 'audio'" class="thumb-placeholder audio-thumb">
-              <i class="pi pi-headphones" style="font-size: 2.5rem; color: var(--p-primary-color)" />
+            >
+            <div
+              v-else-if="media.status === 'ready' && media.media_type === 'audio'"
+              class="thumb-placeholder audio-thumb"
+            >
+              <i
+                class="pi pi-headphones"
+                style="font-size: 2.5rem; color: var(--p-primary-color)"
+              />
             </div>
-            <div v-else class="thumb-placeholder">
-              <ProgressSpinner v-if="media.status === 'processing'" style="width: 2rem; height: 2rem" />
-              <i v-else class="pi pi-exclamation-triangle" style="font-size: 1.5rem; color: var(--p-red-500)" />
+            <div
+              v-else
+              class="thumb-placeholder"
+            >
+              <ProgressSpinner
+                v-if="media.status === 'processing'"
+                style="width: 2rem; height: 2rem"
+              />
+              <i
+                v-else
+                class="pi pi-exclamation-triangle"
+                style="font-size: 1.5rem; color: var(--p-red-500)"
+              />
             </div>
-            <span v-if="media.duration_sec" class="duration-badge">{{ formatDuration(media.duration_sec) }}</span>
+            <span
+              v-if="media.duration_sec"
+              class="duration-badge"
+            >{{ formatDuration(media.duration_sec) }}</span>
           </div>
 
           <div class="media-info">
             <h4>{{ media.title }}</h4>
             <div class="media-meta">
-              <Tag v-if="media.status === 'processing'" value="Processing..." severity="warn" />
-              <Tag v-else-if="media.status === 'error'" value="Error" severity="danger" />
-              <span v-else class="meta-text">{{ media.profile }} &middot; {{ formatSize(media.file_size_bytes) }}</span>
+              <Tag
+                v-if="media.status === 'processing'"
+                value="Processing..."
+                severity="warn"
+              />
+              <Tag
+                v-else-if="media.status === 'error'"
+                value="Error"
+                severity="danger"
+              />
+              <span
+                v-else
+                class="meta-text"
+              >{{ media.profile }} &middot; {{ formatSize(media.file_size_bytes) }}</span>
             </div>
           </div>
 
-          <div class="media-actions" @click.stop>
+          <div
+            class="media-actions"
+            @click.stop
+          >
             <Button
               icon="pi pi-trash"
               text
@@ -176,7 +234,7 @@ function formatSize(bytes: number | null | undefined): string {
     <UploadDialog
       ref="uploadDialogRef"
       v-model:visible="showUpload"
-      :collectionId="collectionId"
+      :collection-id="collectionId"
       @upload="handleUpload"
     />
   </div>

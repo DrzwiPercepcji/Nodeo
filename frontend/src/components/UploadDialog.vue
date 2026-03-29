@@ -94,17 +94,25 @@ defineExpose({
 <template>
   <Dialog
     :visible="visible"
-    @update:visible="emit('update:visible', $event)"
     header="Upload Media"
     modal
     :closable="!uploading"
     :style="{ width: '30rem' }"
+    @update:visible="emit('update:visible', $event)"
   >
     <div class="upload-form">
       <div class="field">
         <label>Media file</label>
-        <input type="file" accept="video/*,audio/*" @change="onFileSelect" :disabled="uploading" />
-        <div v-if="file" class="file-meta">
+        <input
+          type="file"
+          accept="video/*,audio/*"
+          :disabled="uploading"
+          @change="onFileSelect"
+        >
+        <div
+          v-if="file"
+          class="file-meta"
+        >
           <span class="file-info">{{ (file.size / 1024 / 1024).toFixed(1) }} MB</span>
           <span class="file-type-badge">{{ isAudio ? '🎵 Audio' : '🎬 Video' }}</span>
         </div>
@@ -112,12 +120,25 @@ defineExpose({
 
       <div class="field">
         <label for="upl-title">Title</label>
-        <InputText id="upl-title" v-model="title" placeholder="Media title" fluid :disabled="uploading" />
+        <InputText
+          id="upl-title"
+          v-model="title"
+          placeholder="Media title"
+          fluid
+          :disabled="uploading"
+        />
       </div>
 
       <div class="field">
         <label for="upl-desc">Description</label>
-        <Textarea id="upl-desc" v-model="description" placeholder="Optional description" rows="2" fluid :disabled="uploading" />
+        <Textarea
+          id="upl-desc"
+          v-model="description"
+          placeholder="Optional description"
+          rows="2"
+          fluid
+          :disabled="uploading"
+        />
       </div>
 
       <div class="field">
@@ -126,22 +147,42 @@ defineExpose({
           id="upl-profile"
           v-model="profile"
           :options="profileOptions"
-          optionLabel="label"
-          optionValue="value"
+          option-label="label"
+          option-value="value"
           fluid
           :disabled="uploading"
         />
       </div>
 
-      <ProgressBar v-if="uploading" :value="progress" :showValue="true" class="upload-progress" />
-      <small v-if="uploading && progress >= 100" class="processing-hint">
+      <ProgressBar
+        v-if="uploading"
+        :value="progress"
+        :show-value="true"
+        class="upload-progress"
+      />
+      <small
+        v-if="uploading && progress >= 100"
+        class="processing-hint"
+      >
         Upload complete. Server is processing {{ mediaLabel }}...
       </small>
     </div>
 
     <template #footer>
-      <Button label="Cancel" text severity="secondary" @click="emit('update:visible', false)" :disabled="uploading" />
-      <Button label="Upload" icon="pi pi-upload" @click="handleUpload" :loading="uploading" :disabled="!file || !title.trim()" />
+      <Button
+        label="Cancel"
+        text
+        severity="secondary"
+        :disabled="uploading"
+        @click="emit('update:visible', false)"
+      />
+      <Button
+        label="Upload"
+        icon="pi pi-upload"
+        :loading="uploading"
+        :disabled="!file || !title.trim()"
+        @click="handleUpload"
+      />
     </template>
   </Dialog>
 </template>

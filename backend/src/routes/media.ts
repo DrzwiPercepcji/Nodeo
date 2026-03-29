@@ -13,7 +13,7 @@ import { generateFileIv, encryptFile, createStreamDecipher } from '../services/e
 import * as s3 from '../services/s3.js';
 import {
   transcodeVideo, transcodeAudio, generateThumbnail, probeDuration, getFileSize,
-  PROFILES, VIDEO_PROFILES, AUDIO_PROFILES,
+  VIDEO_PROFILES, AUDIO_PROFILES,
   detectMediaType, outputExtension, outputMime,
 } from '../services/transcoding.js';
 

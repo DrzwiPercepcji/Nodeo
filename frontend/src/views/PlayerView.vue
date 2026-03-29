@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useMediaStore } from '@/stores/media'
 import AppTopbar from '@/components/AppTopbar.vue'
 import type { components } from '@/api/schema'
@@ -8,7 +8,6 @@ import type { components } from '@/api/schema'
 type Media = components['schemas']['Media']
 
 const route = useRoute()
-const router = useRouter()
 const mediaStore = useMediaStore()
 
 const mediaId = route.params.id as string
@@ -36,10 +35,19 @@ function formatSize(bytes: number | null | undefined): string {
 </script>
 
 <template>
-  <div class="layout" :class="{ 'layout-audio': isAudio }">
-    <AppTopbar :title="media?.title ?? 'Player'" showBack />
+  <div
+    class="layout"
+    :class="{ 'layout-audio': isAudio }"
+  >
+    <AppTopbar
+      :title="media?.title ?? 'Player'"
+      show-back
+    />
 
-    <main v-if="media" :class="isAudio ? 'audio-content' : 'player-content'">
+    <main
+      v-if="media"
+      :class="isAudio ? 'audio-content' : 'player-content'"
+    >
       <!-- Video player -->
       <template v-if="!isAudio">
         <div class="video-wrapper">
@@ -55,7 +63,12 @@ function formatSize(bytes: number | null | undefined): string {
 
         <div class="video-info">
           <h1>{{ media.title }}</h1>
-          <p v-if="media.description" class="description">{{ media.description }}</p>
+          <p
+            v-if="media.description"
+            class="description"
+          >
+            {{ media.description }}
+          </p>
           <div class="meta">
             <span v-if="media.duration_sec">{{ formatDuration(media.duration_sec) }}</span>
             <span v-if="media.file_size_bytes">{{ formatSize(media.file_size_bytes) }}</span>
@@ -72,7 +85,12 @@ function formatSize(bytes: number | null | undefined): string {
 
         <div class="audio-info">
           <h1>{{ media.title }}</h1>
-          <p v-if="media.description" class="description">{{ media.description }}</p>
+          <p
+            v-if="media.description"
+            class="description"
+          >
+            {{ media.description }}
+          </p>
           <div class="meta">
             <span v-if="media.duration_sec">{{ formatDuration(media.duration_sec) }}</span>
             <span v-if="media.file_size_bytes">{{ formatSize(media.file_size_bytes) }}</span>

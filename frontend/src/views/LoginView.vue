@@ -37,7 +37,10 @@ async function handleLogin() {
         <p>Private media streaming</p>
       </div>
 
-      <form @submit.prevent="handleLogin" class="login-form">
+      <form
+        class="login-form"
+        @submit.prevent="handleLogin"
+      >
         <div class="field">
           <label for="username">Username</label>
           <InputText
@@ -56,7 +59,7 @@ async function handleLogin() {
             v-model="password"
             placeholder="Enter password"
             :feedback="false"
-            toggleMask
+            toggle-mask
             autocomplete="current-password"
             fluid
           />

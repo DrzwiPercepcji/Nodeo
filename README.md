@@ -76,6 +76,15 @@ After changing `backend/src/openapi.yaml`:
 cd frontend && npm run api:generate
 ```
 
+### Lint
+
+```bash
+cd backend && npm run lint
+cd frontend && npm run lint   # Oxlint + ESLint (Vue recommended + TypeScript)
+```
+
+On GitHub, workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs the same checks on every push and pull request targeting `master` or `main`.
+
 ## Architecture
 
 | Layer | Technology |

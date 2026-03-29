@@ -60,36 +60,73 @@ function handleSave() {
 <template>
   <Dialog
     :visible="visible"
-    @update:visible="emit('update:visible', $event)"
     :header="isEdit ? 'Edit Collection' : 'New Collection'"
     modal
     :style="{ width: '28rem' }"
+    @update:visible="emit('update:visible', $event)"
   >
     <div class="dialog-form">
       <div class="field">
         <label for="col-name">Name</label>
-        <InputText id="col-name" v-model="name" placeholder="Collection name" fluid />
+        <InputText
+          id="col-name"
+          v-model="name"
+          placeholder="Collection name"
+          fluid
+        />
       </div>
 
       <div class="field">
         <label for="col-desc">Description</label>
-        <Textarea id="col-desc" v-model="description" placeholder="Optional description" rows="3" fluid />
+        <Textarea
+          id="col-desc"
+          v-model="description"
+          placeholder="Optional description"
+          rows="3"
+          fluid
+        />
       </div>
 
-      <div v-if="!isEdit" class="field-check">
-        <Checkbox v-model="encrypted" inputId="col-enc" :binary="true" />
+      <div
+        v-if="!isEdit"
+        class="field-check"
+      >
+        <Checkbox
+          v-model="encrypted"
+          input-id="col-enc"
+          :binary="true"
+        />
         <label for="col-enc">Encrypt with passphrase</label>
       </div>
 
-      <div v-if="!isEdit && encrypted" class="field">
+      <div
+        v-if="!isEdit && encrypted"
+        class="field"
+      >
         <label for="col-pass">Passphrase</label>
-        <Password id="col-pass" v-model="passphrase" placeholder="Enter passphrase" :feedback="false" toggleMask fluid />
+        <Password
+          id="col-pass"
+          v-model="passphrase"
+          placeholder="Enter passphrase"
+          :feedback="false"
+          toggle-mask
+          fluid
+        />
       </div>
     </div>
 
     <template #footer>
-      <Button label="Cancel" text severity="secondary" @click="emit('update:visible', false)" />
-      <Button :label="isEdit ? 'Save' : 'Create'" @click="handleSave" :disabled="!name.trim()" />
+      <Button
+        label="Cancel"
+        text
+        severity="secondary"
+        @click="emit('update:visible', false)"
+      />
+      <Button
+        :label="isEdit ? 'Save' : 'Create'"
+        :disabled="!name.trim()"
+        @click="handleSave"
+      />
     </template>
   </Dialog>
 </template>

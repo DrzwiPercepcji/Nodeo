@@ -39,10 +39,10 @@ defineExpose({ stopLoading: () => (loading.value = false) })
 <template>
   <Dialog
     :visible="visible"
-    @update:visible="emit('update:visible', $event)"
     header="Unlock Collection"
     modal
     :style="{ width: '24rem' }"
+    @update:visible="emit('update:visible', $event)"
   >
     <div class="unlock-form">
       <p class="unlock-hint">
@@ -52,15 +52,26 @@ defineExpose({ stopLoading: () => (loading.value = false) })
         v-model="passphrase"
         placeholder="Passphrase"
         :feedback="false"
-        toggleMask
+        toggle-mask
         fluid
         @keydown.enter="handleUnlock"
       />
     </div>
 
     <template #footer>
-      <Button label="Cancel" text severity="secondary" @click="emit('update:visible', false)" />
-      <Button label="Unlock" icon="pi pi-lock-open" @click="handleUnlock" :loading="loading" :disabled="!passphrase" />
+      <Button
+        label="Cancel"
+        text
+        severity="secondary"
+        @click="emit('update:visible', false)"
+      />
+      <Button
+        label="Unlock"
+        icon="pi pi-lock-open"
+        :loading="loading"
+        :disabled="!passphrase"
+        @click="handleUnlock"
+      />
     </template>
   </Dialog>
 </template>

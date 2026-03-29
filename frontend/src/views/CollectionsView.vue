@@ -95,17 +95,33 @@ async function handleUnlock(passphrase: string) {
     <main class="content">
       <div class="content-header">
         <h1>Collections</h1>
-        <Button label="New Collection" icon="pi pi-plus" @click="showCreate = true" />
+        <Button
+          label="New Collection"
+          icon="pi pi-plus"
+          @click="showCreate = true"
+        />
       </div>
 
-      <ProgressSpinner v-if="store.loading" class="spinner" />
+      <ProgressSpinner
+        v-if="store.loading"
+        class="spinner"
+      />
 
-      <div v-else-if="store.collections.length === 0" class="empty-state">
-        <i class="pi pi-folder-open" style="font-size: 3rem; color: var(--p-text-muted-color)"></i>
+      <div
+        v-else-if="store.collections.length === 0"
+        class="empty-state"
+      >
+        <i
+          class="pi pi-folder-open"
+          style="font-size: 3rem; color: var(--p-text-muted-color)"
+        />
         <p>No collections yet. Create one to get started.</p>
       </div>
 
-      <div v-else class="grid">
+      <div
+        v-else
+        class="grid"
+      >
         <div
           v-for="col in store.collections"
           :key="col.id"
@@ -120,18 +136,39 @@ async function handleUnlock(passphrase: string) {
           </div>
           <div class="card-body">
             <h3>{{ col.name }}</h3>
-            <p v-if="col.description" class="card-desc">{{ col.description }}</p>
+            <p
+              v-if="col.description"
+              class="card-desc"
+            >
+              {{ col.description }}
+            </p>
             <div class="card-meta">
-              <span v-if="col.is_encrypted" class="badge badge-encrypted">
+              <span
+                v-if="col.is_encrypted"
+                class="badge badge-encrypted"
+              >
                 <i class="pi pi-shield" /> Encrypted
               </span>
-              <span v-else class="badge badge-open">
+              <span
+                v-else
+                class="badge badge-open"
+              >
                 <i class="pi pi-folder" /> Open
               </span>
             </div>
           </div>
-          <div class="card-actions" @click.stop>
-            <Button icon="pi pi-pencil" text rounded size="small" severity="secondary" @click="openEdit(col)" />
+          <div
+            class="card-actions"
+            @click.stop
+          >
+            <Button
+              icon="pi pi-pencil"
+              text
+              rounded
+              size="small"
+              severity="secondary"
+              @click="openEdit(col)"
+            />
             <Button
               icon="pi pi-trash"
               text
@@ -148,12 +185,19 @@ async function handleUnlock(passphrase: string) {
 
     <ConfirmDialog />
 
-    <CollectionDialog v-model:visible="showCreate" @save="handleCreate" />
-    <CollectionDialog v-model:visible="showEdit" :collection="editingCollection" @save="handleEdit" />
+    <CollectionDialog
+      v-model:visible="showCreate"
+      @save="handleCreate"
+    />
+    <CollectionDialog
+      v-model:visible="showEdit"
+      :collection="editingCollection"
+      @save="handleEdit"
+    />
     <UnlockDialog
       ref="unlockDialogRef"
       v-model:visible="showUnlock"
-      :collectionName="unlockTarget?.name ?? ''"
+      :collection-name="unlockTarget?.name ?? ''"
       @unlock="handleUnlock"
     />
   </div>
