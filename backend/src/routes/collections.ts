@@ -5,6 +5,7 @@ import { validate } from '../middleware/validate.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import { createCollectionKeys, unwrapDek } from '../services/encryption.js';
 import { cacheDek, getCachedDek, evictDek } from '../services/keyCache.js';
+import * as s3 from '../services/s3.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -126,12 +127,20 @@ router.put('/:id', validate([
 }));
 
 router.delete('/:id', asyncHandler(async (req, res) => {
-  const { rowCount } = await pool.query('DELETE FROM collections WHERE id = $1', [req.params.id]);
+  const id = req.params.id as string;
+  const { rows: mediaRows } = await pool.query(
+    'SELECT s3_key, thumbnails FROM media WHERE collection_id = $1',
+    [id],
+  );
+  for (const row of mediaRows) {
+    await s3.moveMediaKeysToTrash(row.s3_key as string, row.thumbnails);
+  }
+  const { rowCount } = await pool.query('DELETE FROM collections WHERE id = $1', [id]);
   if (rowCount === 0) {
     res.status(404).json({ error: 'Collection not found' });
     return;
   }
-  evictDek(req.params.id as string);
+  evictDek(id);
   res.status(204).end();
 }));
 

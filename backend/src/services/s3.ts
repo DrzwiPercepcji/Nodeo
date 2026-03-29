@@ -3,7 +3,10 @@ import {
   GetObjectCommand,
   DeleteObjectCommand,
   HeadObjectCommand,
+  CopyObjectCommand,
+  type PutObjectCommandInput,
 } from '@aws-sdk/client-s3';
+import { randomUUID } from 'node:crypto';
 import { Upload } from '@aws-sdk/lib-storage';
 import { NodeHttpHandler } from '@smithy/node-http-handler';
 import type { Readable } from 'node:stream';
@@ -28,6 +31,13 @@ const client = new S3Client({
 });
 
 const bucket = config.s3.bucket;
+
+/** Quarantined keys; bucket lifecycle (prefix trash/) should expire after ~7 days. */
+const TRASH_PREFIX = 'trash/archive';
+
+function copySourceHeader(sourceKey: string): string {
+  return `${bucket}/${encodeURIComponent(sourceKey).replace(/%2F/g, '/')}`;
+}
 
 const UPLOAD_MAX_ATTEMPTS = 4;
 const UPLOAD_BASE_DELAY_MS = 750;
@@ -79,12 +89,23 @@ async function runUploadWithRetries(
   throw lastErr;
 }
 
+const uploadExtraParams: Pick<PutObjectCommandInput, 'StorageClass'> | Record<string, never> =
+  config.s3.storageClass
+    ? { StorageClass: config.s3.storageClass as PutObjectCommandInput['StorageClass'] }
+    : {};
+
 export async function uploadFile(key: string, filePath: string, contentType: string): Promise<void> {
   await runUploadWithRetries('file', key, async () => {
     const stream = createReadStream(filePath);
     const upload = new Upload({
       client,
-      params: { Bucket: bucket, Key: key, Body: stream, ContentType: contentType },
+      params: {
+        Bucket: bucket,
+        Key: key,
+        Body: stream,
+        ContentType: contentType,
+        ...uploadExtraParams,
+      },
       partSize: 10 * 1024 * 1024,
       queueSize: 3,
     });
@@ -96,7 +117,7 @@ export async function uploadBuffer(key: string, data: Buffer, contentType: strin
   await runUploadWithRetries('buffer', key, async () => {
     const upload = new Upload({
       client,
-      params: { Bucket: bucket, Key: key, Body: data, ContentType: contentType },
+      params: { Bucket: bucket, Key: key, Body: data, ContentType: contentType, ...uploadExtraParams },
     });
     await upload.done();
   });
@@ -127,4 +148,43 @@ export async function headObject(key: string): Promise<{ contentLength: number }
 
 export async function deleteObject(key: string): Promise<void> {
   await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+}
+
+/** S3 keys from `media.thumbnails` JSON. */
+export function thumbnailKeysFromRow(thumbnails: unknown): string[] {
+  if (!thumbnails || !Array.isArray(thumbnails)) return [];
+  return thumbnails
+    .map((t: { s3_key?: string }) => (typeof t?.s3_key === 'string' ? t.s3_key : null))
+    .filter((k): k is string => !!k);
+}
+
+/** Server-side copy to trash prefix, then delete original. No-op if object missing. */
+export async function moveObjectToTrash(sourceKey: string): Promise<void> {
+  if (!sourceKey || sourceKey.startsWith(`${TRASH_PREFIX}/`) || sourceKey.startsWith('trash/')) return;
+  try {
+    await headObject(sourceKey);
+  } catch {
+    return;
+  }
+  const destKey = `${TRASH_PREFIX}/${randomUUID()}/${sourceKey}`;
+  await client.send(new CopyObjectCommand({
+    Bucket: bucket,
+    Key: destKey,
+    CopySource: copySourceHeader(sourceKey),
+  }));
+  await deleteObject(sourceKey);
+}
+
+export async function moveMediaKeysToTrash(s3Key: string, thumbnails: unknown): Promise<void> {
+  const keys = [s3Key, ...thumbnailKeysFromRow(thumbnails)];
+  const seen = new Set<string>();
+  for (const k of keys) {
+    if (seen.has(k)) continue;
+    seen.add(k);
+    try {
+      await moveObjectToTrash(k);
+    } catch (err) {
+      console.warn(`[s3] moveObjectToTrash failed for ${k}:`, err instanceof Error ? err.message : err);
+    }
+  }
 }

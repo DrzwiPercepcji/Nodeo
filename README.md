@@ -118,6 +118,7 @@ All configuration is via `.env` — see [.env.example](.env.example) for all ava
 | `S3_ACCESS_KEY` | yes | IAM access key |
 | `S3_SECRET_KEY` | yes | IAM secret key |
 | `S3_ENDPOINT` | no | Custom S3 endpoint (MinIO, etc.) |
+| `S3_STORAGE_CLASS` | no | e.g. `INTELLIGENT_TIERING` on AWS; omit for MinIO |
 | `CORS_ORIGIN` | no | CORS origin (default: `*`) |
 | `BACKEND_PORT` | no | Backend port (default: 3000) |
 | `FRONTEND_PORT` | no | Frontend port (default: 8080) |

@@ -32,6 +32,8 @@ const config = {
     accessKey: process.env.S3_ACCESS_KEY || '',
     secretKey: process.env.S3_SECRET_KEY || '',
     endpoint: process.env.S3_ENDPOINT || undefined,
+    /** e.g. INTELLIGENT_TIERING on AWS; leave unset for MinIO (Standard). */
+    storageClass: process.env.S3_STORAGE_CLASS?.trim() || undefined,
   },
 } as const;
 

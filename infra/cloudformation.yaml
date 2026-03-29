@@ -27,6 +27,16 @@ Resources:
             Status: Enabled
             AbortIncompleteMultipartUpload:
               DaysAfterInitiation: 1
+          - Id: trash-expire-7d
+            Status: Enabled
+            Prefix: trash/
+            ExpirationInDays: 7
+          - Id: intelligent-tiering-collections
+            Status: Enabled
+            Prefix: collections/
+            Transitions:
+              - TransitionInDays: 0
+                StorageClass: INTELLIGENT_TIERING
 
   NodeoUser:
     Type: AWS::IAM::User

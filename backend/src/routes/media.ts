@@ -505,10 +505,7 @@ router.delete('/media/:id', asyncHandler(async (req, res) => {
   );
   if (rows.length === 0) { res.status(404).json({ error: 'Media not found' }); return; }
 
-  await s3.deleteObject(rows[0].s3_key).catch(() => {});
-  for (const f of parseThumbnails(rows[0].thumbnails)) {
-    await s3.deleteObject(f.s3_key).catch(() => {});
-  }
+  await s3.moveMediaKeysToTrash(rows[0].s3_key as string, rows[0].thumbnails);
   await pool.query('DELETE FROM media WHERE id = $1', [req.params.id]);
 
   res.status(204).end();

@@ -5,9 +5,9 @@ import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import Button from 'primevue/button'
 import ProgressSpinner from 'primevue/progressspinner'
-import ConfirmDialog from 'primevue/confirmdialog'
 import AppTopbar from '@/components/AppTopbar.vue'
 import CollectionDialog from '@/components/CollectionDialog.vue'
+import DeleteCollectionDialog from '@/components/DeleteCollectionDialog.vue'
 import UnlockDialog from '@/components/UnlockDialog.vue'
 import type { components } from '@/api/schema'
 
@@ -24,6 +24,8 @@ const unlockTarget = ref<Collection | null>(null)
 const showUnlock = ref(false)
 const unlockDialogRef = ref<InstanceType<typeof UnlockDialog> | null>(null)
 const deletingId = ref<string | null>(null)
+const deleteTarget = ref<Collection | null>(null)
+const showDelete = ref(false)
 
 onMounted(() => store.fetchAll())
 
@@ -53,11 +55,19 @@ async function handleEdit(data: { name: string; description: string }) {
   }
 }
 
-async function handleDelete(col: Collection) {
+function openDelete(col: Collection) {
+  deleteTarget.value = col
+  showDelete.value = true
+}
+
+async function confirmDelete() {
+  const col = deleteTarget.value
+  if (!col) return
   deletingId.value = col.id
   try {
     await store.remove(col.id)
     toast.add({ severity: 'success', summary: 'Deleted', detail: `"${col.name}" deleted`, life: 3000 })
+    deleteTarget.value = null
   } catch {
     toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to delete collection', life: 3000 })
   } finally {
@@ -176,14 +186,18 @@ async function handleUnlock(passphrase: string) {
               size="small"
               severity="danger"
               :loading="deletingId === col.id"
-              @click="handleDelete(col)"
+              @click="openDelete(col)"
             />
           </div>
         </div>
       </div>
     </main>
 
-    <ConfirmDialog />
+    <DeleteCollectionDialog
+      v-model:visible="showDelete"
+      :collection="deleteTarget"
+      @confirm="confirmDelete"
+    />
 
     <CollectionDialog
       v-model:visible="showCreate"

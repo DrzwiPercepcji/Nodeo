@@ -3,8 +3,13 @@
 Both options create the same resources:
 
 - **S3 bucket** — private, SSE-AES256 at rest, auto-abort incomplete multipart uploads after 1 day
+- **Lifecycle**
+  - **`trash/`** — objects expire after **7 days** (soft-delete quarantine used by the app when removing media or collections)
+  - **`collections/`** — transition to **S3 Intelligent-Tiering** from day 0 (cost optimization for active media paths)
 - **IAM user** `nodeo-backend` with minimal S3 permissions (Put/Get/Delete/Head/List on this bucket only)
 - **Access key** for the IAM user
+
+**MinIO / other S3-compatible backends:** lifecycle rules and `INTELLIGENT_TIERING` may be unsupported or behave differently; use AWS for the full setup, or configure equivalents in your product’s docs.
 
 ## Option A: CloudFormation
 
@@ -66,6 +71,8 @@ S3_BUCKET=your-bucket-name
 S3_REGION=eu-central-1
 S3_ACCESS_KEY=AKIA...
 S3_SECRET_KEY=secret...
+# AWS only: new uploads use Intelligent-Tiering (omit for MinIO)
+S3_STORAGE_CLASS=INTELLIGENT_TIERING
 ```
 
 ## Teardown

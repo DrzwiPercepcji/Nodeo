@@ -60,8 +60,32 @@ resource "aws_s3_bucket_lifecycle_configuration" "media" {
   rule {
     id     = "abort-incomplete-uploads"
     status = "Enabled"
+    filter {}
     abort_incomplete_multipart_upload {
       days_after_initiation = 1
+    }
+  }
+
+  rule {
+    id     = "trash-expire-7d"
+    status = "Enabled"
+    filter {
+      prefix = "trash/"
+    }
+    expiration {
+      days = 7
+    }
+  }
+
+  rule {
+    id     = "intelligent-tiering-collections"
+    status = "Enabled"
+    filter {
+      prefix = "collections/"
+    }
+    transition {
+      days          = 0
+      storage_class = "INTELLIGENT_TIERING"
     }
   }
 }
@@ -130,5 +154,7 @@ output "env_snippet" {
     S3_REGION=${var.region}
     S3_ACCESS_KEY=${aws_iam_access_key.nodeo.id}
     S3_SECRET_KEY=${aws_iam_access_key.nodeo.secret}
+    # AWS only (omit for MinIO):
+    S3_STORAGE_CLASS=INTELLIGENT_TIERING
   EOT
 }
