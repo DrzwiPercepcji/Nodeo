@@ -1,2 +1,10 @@
-data/*
-!data/.gitkeep
+node_modules/
+dist/
+.env
+*.log
+.DS_Store
+uploads/
+
+# Archived legacy data (videos, thumbnails)
+old/data/
+old/node_modules/

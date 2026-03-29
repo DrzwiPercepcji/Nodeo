@@ -1,22 +1,41 @@
-version: "3.7"
 services:
-  app:
-    container_name: app
-    restart: always
-    build: .
+  backend:
+    build: ./backend
+    container_name: nodeo-backend
+    restart: unless-stopped
+    env_file: .env
     ports:
-      - "8080:8080"
+      - "${BACKEND_PORT:-3000}:3000"
     depends_on:
-      - mongo
-    links:
-      - mongo
-    volumes:
-      - ./data/app:/usr/src/app/data/app
-  mongo:
-    container_name: mongo
-    image: mongo
-    privileged: true
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    container_name: nodeo-frontend
+    restart: unless-stopped
     ports:
-      - "27017:27017"
+      - "${FRONTEND_PORT:-8080}:80"
+    depends_on:
+      - backend
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: nodeo-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-nodeo}
+      POSTGRES_USER: ${POSTGRES_USER:-nodeo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     volumes:
-      - ./data/mongo:/data/db
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_EXPOSE_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nodeo}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  pgdata:

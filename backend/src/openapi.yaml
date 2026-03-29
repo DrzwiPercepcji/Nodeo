@@ -1,0 +1,435 @@
+openapi: 3.0.3
+info:
+  title: Nodeo API
+  description: Private self-hosted media streaming service
+  version: 2.0.0
+
+servers:
+  - url: /api
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+
+    LoginResponse:
+      type: object
+      required: [token, expiresIn]
+      properties:
+        token:
+          type: string
+        expiresIn:
+          type: string
+
+    UserInfo:
+      type: object
+      required: [username]
+      properties:
+        username:
+          type: string
+
+    HealthResponse:
+      type: object
+      required: [status, timestamp]
+      properties:
+        status:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    Collection:
+      type: object
+      required: [id, name, is_encrypted, created_at, updated_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        is_encrypted:
+          type: boolean
+        cover_url:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CollectionCreate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+        passphrase:
+          type: string
+          description: If provided, the collection will be encrypted with this passphrase
+
+    CollectionUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+
+    UnlockRequest:
+      type: object
+      required: [passphrase]
+      properties:
+        passphrase:
+          type: string
+
+    UnlockResponse:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+
+    Media:
+      type: object
+      required: [id, collection_id, title, media_type, s3_key, profile, created_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        collection_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        media_type:
+          type: string
+          enum: [video, audio]
+        duration_sec:
+          type: integer
+          nullable: true
+        file_size_bytes:
+          type: integer
+          format: int64
+          nullable: true
+        profile:
+          type: string
+        mime_type:
+          type: string
+          nullable: true
+        thumb_s3_key:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      summary: Health check
+      tags: [system]
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /auth/login:
+    post:
+      operationId: login
+      summary: Authenticate user
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Missing credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/me:
+    get:
+      operationId: getMe
+      summary: Get current user info
+      tags: [auth]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current user info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserInfo'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /collections:
+    get:
+      operationId: listCollections
+      summary: List all collections
+      tags: [collections]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of collections
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Collection'
+    post:
+      operationId: createCollection
+      summary: Create a new collection
+      tags: [collections]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollectionCreate'
+      responses:
+        '201':
+          description: Collection created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Collection'
+
+  /collections/{id}:
+    get:
+      operationId: getCollection
+      summary: Get a collection by ID
+      tags: [collections]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Collection details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Collection'
+        '404':
+          description: Collection not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      operationId: updateCollection
+      summary: Update a collection
+      tags: [collections]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollectionUpdate'
+      responses:
+        '200':
+          description: Collection updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Collection'
+    delete:
+      operationId: deleteCollection
+      summary: Delete a collection
+      tags: [collections]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Collection deleted
+
+  /collections/{id}/unlock:
+    post:
+      operationId: unlockCollection
+      summary: Unlock an encrypted collection with passphrase
+      tags: [collections]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UnlockRequest'
+      responses:
+        '200':
+          description: Collection unlocked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnlockResponse'
+        '403':
+          description: Wrong passphrase
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /collections/{id}/media:
+    get:
+      operationId: listCollectionMedia
+      summary: List media in a collection
+      tags: [media]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Media list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Media'
+
+  /media/{id}/stream:
+    get:
+      operationId: streamMedia
+      summary: Stream media content
+      tags: [media]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Media stream
+          content:
+            video/mp4:
+              schema:
+                type: string
+                format: binary
+            audio/mpeg:
+              schema:
+                type: string
+                format: binary
+        '206':
+          description: Partial content (range request)
+
+  /media/{id}/thumb:
+    get:
+      operationId: getMediaThumb
+      summary: Get media thumbnail
+      tags: [media]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Thumbnail image
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary

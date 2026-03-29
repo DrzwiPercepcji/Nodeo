@@ -161,17 +161,17 @@ CREATE TABLE media (
 
 ## Implementation Phases
 
-### Phase 1 — Project Scaffolding & Database `[commit 1]`
+### Phase 1 — Project Scaffolding & Database `[commit 1]` ✓
 
 - [x] Analyze legacy project
-- [ ] Archive old code into `old/` directory
-- [ ] Initialize backend (Express, `pg`, config from env)
-- [ ] Initialize frontend (Vue 3 + Vite + PrimeVue + Pinia + Vue Router)
-- [ ] Create `docker-compose.yml` (backend + frontend + dev postgres)
-- [ ] Create `.env.example` with all required variables
-- [ ] Create database migration (collections + media tables)
-- [ ] Run migrations on startup
-- [ ] Basic health-check endpoint
+- [x] Archive old code into `old/` directory
+- [x] Initialize backend (Express, `pg`, config from env)
+- [x] Initialize frontend (Vue 3 + Vite + PrimeVue + Pinia + Vue Router)
+- [x] Create `docker-compose.yml` (backend + frontend + dev postgres)
+- [x] Create `.env.example` with all required variables
+- [x] Create database migration (collections + media tables)
+- [x] Run migrations on startup
+- [x] Basic health-check endpoint
 
 ### Phase 2 — Authentication `[commit 2]`
 
