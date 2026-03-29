@@ -189,6 +189,8 @@ export interface components {
             name: string;
             description?: string;
             is_encrypted: boolean;
+            /** @description Whether the collection is currently unlocked (always true for non-encrypted) */
+            is_unlocked: boolean;
             cover_url?: string | null;
             /** Format: date-time */
             created_at: string;

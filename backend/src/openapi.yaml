@@ -59,7 +59,7 @@ components:
 
     Collection:
       type: object
-      required: [id, name, is_encrypted, created_at, updated_at]
+      required: [id, name, is_encrypted, is_unlocked, created_at, updated_at]
       properties:
         id:
           type: string
@@ -70,6 +70,9 @@ components:
           type: string
         is_encrypted:
           type: boolean
+        is_unlocked:
+          type: boolean
+          description: Whether the collection is currently unlocked (always true for non-encrypted)
         cover_url:
           type: string
           nullable: true

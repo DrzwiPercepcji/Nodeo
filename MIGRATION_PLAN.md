@@ -173,25 +173,27 @@ CREATE TABLE media (
 - [x] Run migrations on startup
 - [x] Basic health-check endpoint
 
-### Phase 2 — Authentication `[commit 2]`
+### Phase 2 — Authentication `[commit 2]` ✓
 
-- [ ] Backend: `POST /api/auth/login` — validate against env credentials, return JWT (90-day expiry)
-- [ ] Backend: `GET /api/auth/me` — verify JWT, return user info
-- [ ] Backend: Auth middleware for protected routes
-- [ ] Frontend: Login page (logo + form only)
-- [ ] Frontend: JWT storage, Axios interceptor, auth guard on router
-- [ ] Frontend: Auto-redirect to login when token expires
+- [x] Backend: `POST /api/auth/login` — validate against env credentials, return JWT (90-day expiry)
+- [x] Backend: `GET /api/auth/me` — verify JWT, return user info
+- [x] Backend: Auth middleware for protected routes
+- [x] Frontend: Login page (logo + form only)
+- [x] Frontend: JWT storage, openapi-fetch interceptor, auth guard on router
+- [x] Frontend: Auto-redirect to login when token expires
+- [x] OpenAPI spec + generated TypeScript client (`openapi-fetch` + `openapi-typescript`)
+- [x] Backend migrated to TypeScript
 
-### Phase 3 — Collections `[commit 3]`
+### Phase 3 — Collections `[commit 3]` ✓
 
-- [ ] Backend: CRUD for collections (`/api/collections`)
-- [ ] Backend: Collection passphrase unlock endpoint — PBKDF2 → decrypt DEK → cache 1 hour
-- [ ] Backend: Encryption service (key generation, wrapping, unwrapping, verification)
-- [ ] Backend: Key cache service (in-memory Map with TTL)
-- [ ] Frontend: Collections grid (cards/tiles view)
-- [ ] Frontend: Create/edit collection dialog (name, description, optional passphrase)
-- [ ] Frontend: Passphrase dialog for encrypted collections
-- [ ] Frontend: Visual indicator for locked/unlocked collections
+- [x] Backend: CRUD for collections (`/api/collections`)
+- [x] Backend: Collection passphrase unlock endpoint — PBKDF2 → decrypt DEK → cache 1 hour
+- [x] Backend: Encryption service (key generation, wrapping, unwrapping, verification)
+- [x] Backend: Key cache service (in-memory Map with TTL)
+- [x] Frontend: Collections grid (cards/tiles view)
+- [x] Frontend: Create/edit collection dialog (name, description, optional passphrase)
+- [x] Frontend: Passphrase dialog for encrypted collections
+- [x] Frontend: Visual indicator for locked/unlocked collections
 
 ### Phase 4 — Video Upload & Processing `[commit 4]`
 
