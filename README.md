@@ -10,6 +10,8 @@ Private self-hosted media streaming service with per-collection encryption and S
    # Edit .env with your values (Postgres, S3, auth credentials)
    ```
 
+   **Bcrypt hash in `.env`:** Docker Compose treats `$` as variable interpolation. Double every `$` in `AUTH_PASSWORD_HASH` (e.g. `$2a$12$...` → `$$2a$$12$$...`), or login will always fail with “invalid credentials”.
+
 2. Generate password hash and JWT secret (run from `backend/` so `bcryptjs` resolves):
    ```bash
    cd backend
