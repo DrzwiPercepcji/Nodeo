@@ -18,6 +18,23 @@ import {
   detectMediaType, outputExtension, outputMime,
   thumbSeekSeconds, generateThumbnailAt, THUMB_FRAME_COUNT,
 } from '../services/transcoding.js';
+import {
+  setMediaJobProgress,
+  clearMediaJobProgress,
+  progressForApi,
+} from '../services/processingProgress.js';
+
+/** Overall % bands: transcode → thumbs → encrypt → main S3 → thumb S3 */
+const P_TRANSCODE = [0, 50] as const;
+const P_THUMBS = [50, 62] as const;
+const P_ENCRYPT = [62, 68] as const;
+const P_MAIN = [68, 85] as const;
+const P_THUMB_UP = [85, 100] as const;
+
+function overallTranscode(ffmpegPct: number): number {
+  const [lo, hi] = P_TRANSCODE;
+  return Math.round(lo + (ffmpegPct / 100) * (hi - lo));
+}
 
 const router = Router();
 router.use(requireAuth);
@@ -124,20 +141,64 @@ async function processUpload(
   const encThumbPaths: string[] = [];
 
   try {
+    const inputDurationSec = await probeDuration(inputPath);
+    setMediaJobProgress(mediaId, {
+      stage: 'transcoding',
+      overall_percent: 0,
+      current_sec: 0,
+      total_sec: inputDurationSec,
+    });
+
     if (mediaType === 'video') {
       console.log(`[${mediaId}] Transcoding video with profile ${profileName}...`);
-      await transcodeVideo(inputPath, transcodedPath, profileName);
+      await transcodeVideo(inputPath, transcodedPath, profileName, {
+        durationSec: inputDurationSec,
+        onProgress: ({ ffmpegPercent, currentSec }) => {
+          setMediaJobProgress(mediaId, {
+            stage: 'transcoding',
+            overall_percent: overallTranscode(ffmpegPercent),
+            current_sec: Math.round(currentSec),
+            total_sec: inputDurationSec,
+          });
+        },
+      });
     } else {
       console.log(`[${mediaId}] Transcoding audio with profile ${profileName}...`);
-      await transcodeAudio(inputPath, transcodedPath, profileName);
+      await transcodeAudio(inputPath, transcodedPath, profileName, {
+        durationSec: inputDurationSec,
+        onProgress: ({ ffmpegPercent, currentSec }) => {
+          setMediaJobProgress(mediaId, {
+            stage: 'transcoding',
+            overall_percent: overallTranscode(ffmpegPercent),
+            current_sec: Math.round(currentSec),
+            total_sec: inputDurationSec,
+          });
+        },
+      });
     }
+
+    const totalForBar = inputDurationSec ?? null;
+    setMediaJobProgress(mediaId, {
+      stage: 'transcoding',
+      overall_percent: P_TRANSCODE[1],
+      current_sec: totalForBar,
+      total_sec: totalForBar,
+    });
 
     const duration = await probeDuration(transcodedPath);
 
     if (mediaType === 'video') {
       const seeks = thumbSeekSeconds(duration);
-      console.log(`[${mediaId}] Generating ${seeks.length} thumbnail frames...`);
-      for (let i = 0; i < Math.min(seeks.length, THUMB_FRAME_COUNT); i++) {
+      const thumbTotal = Math.min(seeks.length, THUMB_FRAME_COUNT);
+      console.log(`[${mediaId}] Generating ${thumbTotal} thumbnail frames...`);
+      for (let i = 0; i < thumbTotal; i++) {
+        const [lo, hi] = P_THUMBS;
+        setMediaJobProgress(mediaId, {
+          stage: 'thumbnails',
+          overall_percent: lo + Math.round(((i + 1) / thumbTotal) * (hi - lo)),
+          current_sec: null,
+          total_sec: null,
+        });
         const p = join(TEMP_DIR, `${mediaId}-thumb-${i}.jpg`);
         try {
           await generateThumbnailAt(transcodedPath, p, seeks[i]!);
@@ -155,24 +216,66 @@ async function processUpload(
       const dek = getCachedDek(collectionId);
       if (dek) {
         encryptionIv = generateFileIv();
+        setMediaJobProgress(mediaId, {
+          stage: 'encrypting',
+          overall_percent: P_ENCRYPT[0] + 2,
+          current_sec: null,
+          total_sec: null,
+        });
         console.log(`[${mediaId}] Encrypting main file...`);
         await encryptFile(dek, encryptionIv, transcodedPath, encryptedPath);
         uploadPath = encryptedPath;
+        setMediaJobProgress(mediaId, {
+          stage: 'encrypting',
+          overall_percent: P_ENCRYPT[1],
+          current_sec: null,
+          total_sec: null,
+        });
       }
     }
 
     const fileSize = await getFileSize(uploadPath);
 
+    setMediaJobProgress(mediaId, {
+      stage: 'uploading_main',
+      overall_percent: P_MAIN[0],
+      current_sec: null,
+      total_sec: null,
+    });
     console.log(`[${mediaId}] Uploading to S3...`);
     await s3.uploadFile(s3Key, uploadPath, mimeType);
+    setMediaJobProgress(mediaId, {
+      stage: 'uploading_main',
+      overall_percent: P_MAIN[1],
+      current_sec: null,
+      total_sec: null,
+    });
 
     const frames: ThumbnailFrame[] = [];
     const dek = isEncrypted ? getCachedDek(collectionId) : null;
+    const upCount = thumbPaths.length;
+
+    if (upCount === 0) {
+      setMediaJobProgress(mediaId, {
+        stage: 'uploading_main',
+        overall_percent: 99,
+        current_sec: null,
+        total_sec: null,
+      });
+    }
 
     for (let i = 0; i < thumbPaths.length; i++) {
       const thumbPath = thumbPaths[i]!;
       const frameKey = `collections/${collectionId}/thumbs/${mediaId}/${i}.jpg`;
       const frameKeyEnc = `collections/${collectionId}/thumbs/${mediaId}/${i}.enc`;
+
+      const [tLo, tHi] = P_THUMB_UP;
+      setMediaJobProgress(mediaId, {
+        stage: 'uploading_thumbs',
+        overall_percent: tLo + Math.round(((i + 1) / upCount) * (tHi - tLo)),
+        current_sec: null,
+        total_sec: null,
+      });
 
       if (dek) {
         const iv = generateFileIv();
@@ -209,6 +312,7 @@ async function processUpload(
     );
     await pool.query(`UPDATE media SET status = 'error' WHERE id = $1`, [mediaId]);
   } finally {
+    clearMediaJobProgress(mediaId);
     const toClean = [inputPath, transcodedPath, encryptedPath, ...thumbPaths, ...encThumbPaths];
     await cleanupFiles(...toClean);
   }
@@ -236,7 +340,13 @@ router.get('/media/:id', asyncHandler(async (req, res) => {
     [req.params.id],
   );
   if (rows.length === 0) { res.status(404).json({ error: 'Media not found' }); return; }
-  res.json(rows[0]);
+  const row = rows[0] as Record<string, unknown>;
+  if (row.status === 'processing') {
+    res.set('Cache-Control', 'private, no-store');
+    res.json({ ...row, progress: progressForApi(req.params.id as string) });
+  } else {
+    res.json(row);
+  }
 }));
 
 router.get('/media/:id/stream', asyncHandler(async (req: Request, res: Response) => {

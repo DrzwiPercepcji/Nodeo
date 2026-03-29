@@ -134,7 +134,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get media details */
+        /**
+         * Get media details
+         * @description When status is `processing`, includes optional `progress` (stage, overall_percent, optional time hints). Responses use `Cache-Control: private, no-store` while processing so clients see fresh progress.
+         */
         get: operations["getMedia"];
         put?: never;
         post?: never;
@@ -232,6 +235,16 @@ export interface components {
         UnlockResponse: {
             success: boolean;
         };
+        /** @description Live job progress while status is processing (in-memory on the backend) */
+        MediaProcessingProgress: {
+            /** @enum {string} */
+            stage: "transcoding" | "thumbnails" | "encrypting" | "uploading_main" | "uploading_thumbs";
+            overall_percent: number;
+            /** @description Encoder timeline position during transcoding when known */
+            current_sec?: number | null;
+            /** @description Estimated source duration used for transcoding progress */
+            total_sec?: number | null;
+        };
         Media: {
             /** Format: uuid */
             id: string;
@@ -252,6 +265,8 @@ export interface components {
             created_at: string;
             /** @description Number of video preview frames (0 for audio or processing) */
             thumb_frame_count?: number;
+            /** @description Only while status is processing; null if the server restarted mid-job */
+            progress?: components["schemas"]["MediaProcessingProgress"] | null;
         };
         UploadResponse: {
             /** Format: uuid */

@@ -22,7 +22,10 @@ export const useMediaStore = defineStore('media', () => {
   }
 
   async function fetchSingle(id: string): Promise<Media | null> {
-    const { data } = await api.GET('/media/{id}', { params: { path: { id } } })
+    const { data } = await api.GET('/media/{id}', {
+      params: { path: { id } },
+      cache: 'no-store',
+    })
     return data ?? null
   }
 

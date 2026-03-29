@@ -41,13 +41,57 @@ function runProcess(cmd: string, args: string[]): Promise<void> {
   });
 }
 
-export async function transcodeVideo(inputPath: string, outputPath: string, profileName: string): Promise<void> {
+/** Parse ffmpeg stderr progress `time=HH:MM:SS.xx`. */
+export function parseFfmpegTimeSeconds(line: string): number | null {
+  const m = line.match(/time=(\d+):(\d+):(\d+(?:\.\d+)?)/);
+  if (!m) return null;
+  const h = parseInt(m[1], 10);
+  const min = parseInt(m[2], 10);
+  const s = parseFloat(m[3]);
+  if (Number.isNaN(h) || Number.isNaN(min) || Number.isNaN(s)) return null;
+  return h * 3600 + min * 60 + s;
+}
+
+export type TranscodeProgressCb = (info: { ffmpegPercent: number; currentSec: number }) => void;
+
+async function runFfmpeg(
+  args: string[],
+  onStderrLine?: (line: string) => void,
+): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const proc = spawn('ffmpeg', args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    let stderr = '';
+    let carry = '';
+    proc.stderr.on('data', (chunk: Buffer) => {
+      const piece = chunk.toString();
+      stderr += piece;
+      if (!onStderrLine) return;
+      const text = carry + piece;
+      const lines = text.split('\n');
+      carry = lines.pop() ?? '';
+      for (const line of lines) onStderrLine(line);
+    });
+    proc.on('close', (code) => {
+      if (carry && onStderrLine) onStderrLine(carry);
+      if (code === 0) resolve();
+      else reject(new Error(`ffmpeg exited with code ${code}: ${stderr.slice(-500)}`));
+    });
+    proc.on('error', reject);
+  });
+}
+
+export async function transcodeVideo(
+  inputPath: string,
+  outputPath: string,
+  profileName: string,
+  progress?: { durationSec: number | null; onProgress: TranscodeProgressCb },
+): Promise<void> {
   const profile = VIDEO_PROFILES[profileName];
   if (!profile) throw new Error(`Unknown video profile: ${profileName}`);
 
   const scale = `scale=${profile.width}:${profile.height}:force_original_aspect_ratio=decrease,pad=${profile.width}:${profile.height}:(ow-iw)/2:(oh-ih)/2`;
 
-  await runProcess('ffmpeg', [
+  const args = [
     '-y', '-i', inputPath,
     '-c:v', 'libx264', '-preset', 'medium',
     '-b:v', profile.videoBitrate!, '-maxrate', `${parseInt(profile.videoBitrate!) * 1.2}k`, '-bufsize', `${parseInt(profile.videoBitrate!) * 2}k`,
@@ -56,20 +100,49 @@ export async function transcodeVideo(inputPath: string, outputPath: string, prof
     '-c:a', 'aac', '-b:a', profile.audioBitrate,
     '-movflags', '+faststart',
     outputPath,
-  ]);
+  ];
+
+  const dur = progress?.durationSec;
+  if (progress && dur !== null && dur !== undefined && dur > 0) {
+    await runFfmpeg(args, (line) => {
+      const t = parseFfmpegTimeSeconds(line);
+      if (t === null) return;
+      const ffmpegPercent = Math.min(99, Math.round((t / dur) * 100));
+      progress.onProgress({ ffmpegPercent, currentSec: t });
+    });
+  } else {
+    await runFfmpeg(args);
+  }
 }
 
-export async function transcodeAudio(inputPath: string, outputPath: string, profileName: string): Promise<void> {
+export async function transcodeAudio(
+  inputPath: string,
+  outputPath: string,
+  profileName: string,
+  progress?: { durationSec: number | null; onProgress: TranscodeProgressCb },
+): Promise<void> {
   const profile = AUDIO_PROFILES[profileName];
   if (!profile) throw new Error(`Unknown audio profile: ${profileName}`);
 
-  await runProcess('ffmpeg', [
+  const args = [
     '-y', '-i', inputPath,
     '-vn',
     '-c:a', profile.audioCodec || 'libmp3lame',
     '-b:a', profile.audioBitrate,
     outputPath,
-  ]);
+  ];
+
+  const dur = progress?.durationSec;
+  if (progress && dur !== null && dur !== undefined && dur > 0) {
+    await runFfmpeg(args, (line) => {
+      const t = parseFfmpegTimeSeconds(line);
+      if (t === null) return;
+      const ffmpegPercent = Math.min(99, Math.round((t / dur) * 100));
+      progress.onProgress({ ffmpegPercent, currentSec: t });
+    });
+  } else {
+    await runFfmpeg(args);
+  }
 }
 
 /** Number of preview frames extracted along the timeline (video only). */

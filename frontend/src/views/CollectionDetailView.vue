@@ -9,6 +9,9 @@ import AppTopbar from '@/components/AppTopbar.vue'
 import ProgressSpinner from 'primevue/progressspinner'
 import Tag from 'primevue/tag'
 import UploadDialog from '@/components/UploadDialog.vue'
+import type { components } from '@/api/schema'
+
+type Media = components['schemas']['Media']
 
 const route = useRoute()
 const router = useRouter()
@@ -21,6 +24,18 @@ const showUpload = ref(false)
 const uploadDialogRef = ref<InstanceType<typeof UploadDialog> | null>(null)
 const deletingId = ref<string | null>(null)
 const pollingIds = ref<Set<string>>(new Set())
+
+type MediaProgress = NonNullable<Media['progress']>
+
+const processingProgress = ref<Record<string, MediaProgress>>({})
+
+const STAGE_LABEL: Record<MediaProgress['stage'], string> = {
+  transcoding: 'Transcoding',
+  thumbnails: 'Thumbnails',
+  encrypting: 'Encrypting',
+  uploading_main: 'Uploading',
+  uploading_thumbs: 'Uploading thumbs',
+}
 
 const collection = computed(() =>
   collectionsStore.collections.find((c) => c.id === collectionId),
@@ -41,19 +56,27 @@ async function pollStatus(mediaId: string) {
   if (pollingIds.value.has(mediaId)) return
   pollingIds.value.add(mediaId)
 
+  const pollMs = 2000
+
   const check = async () => {
     const media = await mediaStore.fetchSingle(mediaId)
     if (!media || media.status !== 'processing') {
       pollingIds.value.delete(mediaId)
+      const next = { ...processingProgress.value }
+      delete next[mediaId]
+      processingProgress.value = next
       await mediaStore.fetchByCollection(collectionId)
       if (media?.status === 'ready') {
         toast.add({ severity: 'success', summary: 'Ready', detail: `"${media.title}" is ready`, life: 3000 })
       }
       return
     }
-    setTimeout(check, 5000)
+    if (media.progress) {
+      processingProgress.value = { ...processingProgress.value, [mediaId]: media.progress }
+    }
+    setTimeout(check, pollMs)
   }
-  setTimeout(check, 5000)
+  setTimeout(check, pollMs)
 }
 
 async function handleUpload(data: { file: File; title: string; description: string; profile: string }) {
@@ -90,10 +113,26 @@ async function handleDelete(id: string, title: string) {
 }
 
 function formatDuration(sec: number | null | undefined): string {
-  if (!sec) return '--:--'
+  if (sec == null || sec < 0) return '--:--'
   const m = Math.floor(sec / 60)
   const s = sec % 60
   return `${m}:${s.toString().padStart(2, '0')}`
+}
+
+function processingLabel(id: string): string {
+  const p = processingProgress.value[id]
+  if (!p) return 'Processing…'
+  const stage = STAGE_LABEL[p.stage] ?? p.stage
+  let line = `${stage} · ${p.overall_percent}%`
+  if (
+    p.stage === 'transcoding'
+    && p.current_sec != null
+    && p.total_sec != null
+    && p.total_sec > 0
+  ) {
+    line += ` (${formatDuration(p.current_sec)}/${formatDuration(p.total_sec)})`
+  }
+  return line
 }
 
 function formatSize(bytes: number | null | undefined): string {
@@ -221,7 +260,7 @@ function stripFrameIndices(count: number | null | undefined): number[] {
             <div class="media-meta">
               <Tag
                 v-if="media.status === 'processing'"
-                value="Processing..."
+                :value="processingLabel(media.id)"
                 severity="warn"
               />
               <Tag

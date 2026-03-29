@@ -119,6 +119,27 @@ components:
         success:
           type: boolean
 
+    MediaProcessingProgress:
+      type: object
+      required: [stage, overall_percent]
+      description: Live job progress while status is processing (in-memory on the backend)
+      properties:
+        stage:
+          type: string
+          enum: [transcoding, thumbnails, encrypting, uploading_main, uploading_thumbs]
+        overall_percent:
+          type: integer
+          minimum: 0
+          maximum: 100
+        current_sec:
+          type: integer
+          nullable: true
+          description: Encoder timeline position during transcoding when known
+        total_sec:
+          type: integer
+          nullable: true
+          description: Estimated source duration used for transcoding progress
+
     Media:
       type: object
       required: [id, collection_id, title, media_type, profile, status, created_at]
@@ -158,6 +179,11 @@ components:
           type: integer
           description: Number of video preview frames (0 for audio or processing)
           minimum: 0
+        progress:
+          allOf:
+            - $ref: '#/components/schemas/MediaProcessingProgress'
+          nullable: true
+          description: Only while status is processing; null if the server restarted mid-job
 
     UploadResponse:
       type: object
@@ -448,6 +474,9 @@ paths:
     get:
       operationId: getMedia
       summary: Get media details
+      description: >
+        When status is `processing`, includes optional `progress` (stage, overall_percent, optional time hints).
+        Responses use `Cache-Control: private, no-store` while processing so clients see fresh progress.
       tags: [media]
       security:
         - bearerAuth: []

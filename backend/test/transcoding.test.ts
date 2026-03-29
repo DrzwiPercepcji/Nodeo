@@ -7,6 +7,7 @@ import {
   AUDIO_PROFILES,
   thumbSeekSeconds,
   THUMB_FRAME_COUNT,
+  parseFfmpegTimeSeconds,
 } from '../src/services/transcoding.js';
 
 describe('detectMediaType', () => {
@@ -54,6 +55,18 @@ describe('thumbSeekSeconds', () => {
   it('uses fallback offsets when duration unknown', () => {
     const s = thumbSeekSeconds(null);
     expect(s.length).toBe(THUMB_FRAME_COUNT);
+  });
+});
+
+describe('parseFfmpegTimeSeconds', () => {
+  it('parses ffmpeg stderr time= line', () => {
+    expect(
+      parseFfmpegTimeSeconds('frame= 120 fps=25 q=28.0 size= 1024kB time=00:01:30.50 bitrate= 500kbits/s'),
+    ).toBe(90.5);
+  });
+
+  it('returns null when no time=', () => {
+    expect(parseFfmpegTimeSeconds('Input #0, mov,mp4,m4a')).toBeNull();
   });
 });
 
