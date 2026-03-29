@@ -121,7 +121,7 @@ components:
 
     Media:
       type: object
-      required: [id, collection_id, title, media_type, s3_key, profile, created_at]
+      required: [id, collection_id, title, media_type, profile, status, created_at]
       properties:
         id:
           type: string
@@ -148,12 +148,22 @@ components:
         mime_type:
           type: string
           nullable: true
-        thumb_s3_key:
+        status:
           type: string
-          nullable: true
+          enum: [processing, ready, error]
         created_at:
           type: string
           format: date-time
+
+    UploadResponse:
+      type: object
+      required: [id, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
 
 paths:
   /health:
@@ -384,6 +394,95 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Media'
+    post:
+      operationId: uploadMedia
+      summary: Upload a media file to a collection
+      tags: [media]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                title:
+                  type: string
+                description:
+                  type: string
+                profile:
+                  type: string
+                  enum: ['480p', '720p', '1080p', '1080p60']
+                  default: '720p'
+      responses:
+        '202':
+          description: Upload accepted, processing started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadResponse'
+        '403':
+          description: Collection is locked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /media/{id}:
+    get:
+      operationId: getMedia
+      summary: Get media details
+      tags: [media]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Media details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Media'
+        '404':
+          description: Media not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      operationId: deleteMedia
+      summary: Delete a media file
+      tags: [media]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Media deleted
 
   /media/{id}/stream:
     get:

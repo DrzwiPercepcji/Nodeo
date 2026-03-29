@@ -195,25 +195,23 @@ CREATE TABLE media (
 - [x] Frontend: Passphrase dialog for encrypted collections
 - [x] Frontend: Visual indicator for locked/unlocked collections
 
-### Phase 4 — Video Upload & Processing `[commit 4]`
+### Phase 4+5 — Video Upload, Streaming & Playback `[commit 4]` ✓
 
-- [ ] Backend: S3 service (upload, download, streaming)
-- [ ] Backend: Upload endpoint with multipart handling (`multer` or `busboy`)
-- [ ] Backend: ffmpeg transcoding service with configurable profiles
-- [ ] Backend: Encrypt-then-upload pipeline (AES-256-CTR → S3)
-- [ ] Backend: Thumbnail generation and upload to S3
-- [ ] Backend: Upload progress tracking (polling or SSE)
-- [ ] Frontend: Upload page with file picker, metadata form, profile selector
-- [ ] Frontend: Upload progress bar
-
-### Phase 5 — Video Streaming & Playback `[commit 5]`
-
-- [ ] Backend: Stream endpoint — S3 range fetch → AES-CTR decrypt → HTTP response
-- [ ] Backend: Thumbnail endpoint — S3 fetch (+ decrypt if needed)
-- [ ] Backend: Range request support (map HTTP ranges to S3 + CTR offsets)
-- [ ] Frontend: Media list view within a collection
-- [ ] Frontend: Video player page (HTML5 `<video>` with stream source)
-- [ ] Frontend: Collection detail view with media grid
+- [x] Backend: S3 service (upload, download, range streaming)
+- [x] Backend: Upload endpoint with multipart handling (`multer`)
+- [x] Backend: ffmpeg transcoding service with configurable profiles (480p/720p/1080p/1080p60)
+- [x] Backend: Encrypt-then-upload pipeline (AES-256-CTR → S3)
+- [x] Backend: Thumbnail generation and upload to S3
+- [x] Backend: Upload progress tracking (XHR progress + status polling)
+- [x] Backend: Stream endpoint — S3 range fetch → AES-CTR decrypt → HTTP response
+- [x] Backend: Thumbnail endpoint — S3 fetch → response
+- [x] Backend: Range request support (block-aligned CTR counter computation)
+- [x] Backend: Auth via query param `?token=` for `<video>` src compatibility
+- [x] Frontend: Upload dialog with file picker, metadata form, profile selector
+- [x] Frontend: Upload progress bar + processing status polling
+- [x] Frontend: Collection detail view with media grid
+- [x] Frontend: Video player page (HTML5 `<video>` with stream source)
+- [x] Frontend: Navigation: collections → collection detail → player
 
 ### Phase 6 — Polish & Hardening `[commit 6]`
 

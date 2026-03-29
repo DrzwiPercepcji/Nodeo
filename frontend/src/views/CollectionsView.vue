@@ -77,7 +77,7 @@ function handleCollectionClick(col: Collection) {
     showUnlock.value = true
     return
   }
-  toast.add({ severity: 'info', summary: col.name, detail: 'Media view coming in Phase 5', life: 2000 })
+  router.push(`/collections/${col.id}`)
 }
 
 async function handleUnlock(passphrase: string) {
@@ -87,6 +87,7 @@ async function handleUnlock(passphrase: string) {
   if (ok) {
     showUnlock.value = false
     toast.add({ severity: 'success', summary: 'Unlocked', detail: `"${unlockTarget.value.name}" unlocked for 1 hour`, life: 3000 })
+    router.push(`/collections/${unlockTarget.value.id}`)
   } else {
     toast.add({ severity: 'error', summary: 'Wrong passphrase', detail: 'Could not unlock collection', life: 3000 })
   }

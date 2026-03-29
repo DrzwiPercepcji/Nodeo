@@ -29,7 +29,7 @@ app.get('/api/openapi.yaml', (_req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/collections', collectionsRoutes);
-app.use('/api/media', mediaRoutes);
+app.use('/api', mediaRoutes);
 
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   console.error(err.stack || err.message);

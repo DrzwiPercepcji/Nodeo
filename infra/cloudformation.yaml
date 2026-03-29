@@ -1,0 +1,73 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Nodeo S3 storage and IAM credentials
+
+Parameters:
+  BucketName:
+    Type: String
+    Default: nodeo-media
+    Description: S3 bucket name for Nodeo media storage
+
+Resources:
+  MediaBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref BucketName
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: abort-incomplete-uploads
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 1
+
+  NodeoUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: nodeo-backend
+
+  NodeoAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref NodeoUser
+
+  NodeoS3Policy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: nodeo-s3-access
+      Users:
+        - !Ref NodeoUser
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: NodeoS3Access
+            Effect: Allow
+            Action:
+              - s3:PutObject
+              - s3:GetObject
+              - s3:DeleteObject
+              - s3:HeadObject
+              - s3:ListBucket
+            Resource:
+              - !GetAtt MediaBucket.Arn
+              - !Sub "${MediaBucket.Arn}/*"
+
+Outputs:
+  S3Bucket:
+    Value: !Ref MediaBucket
+
+  S3Region:
+    Value: !Ref "AWS::Region"
+
+  AccessKeyId:
+    Value: !Ref NodeoAccessKey
+
+  SecretAccessKey:
+    Value: !GetAtt NodeoAccessKey.SecretAccessKey

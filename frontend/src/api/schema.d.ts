@@ -119,8 +119,27 @@ export interface paths {
         /** List media in a collection */
         get: operations["listCollectionMedia"];
         put?: never;
-        post?: never;
+        /** Upload a media file to a collection */
+        post: operations["uploadMedia"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/media/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get media details */
+        get: operations["getMedia"];
+        put?: never;
+        post?: never;
+        /** Delete a media file */
+        delete: operations["deleteMedia"];
         options?: never;
         head?: never;
         patch?: never;
@@ -227,9 +246,15 @@ export interface components {
             file_size_bytes?: number | null;
             profile: string;
             mime_type?: string | null;
-            thumb_s3_key?: string | null;
+            /** @enum {string} */
+            status: "processing" | "ready" | "error";
             /** Format: date-time */
             created_at: string;
+        };
+        UploadResponse: {
+            /** Format: uuid */
+            id: string;
+            status: string;
         };
     };
     responses: never;
@@ -506,6 +531,102 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Media"][];
                 };
+            };
+        };
+    };
+    uploadMedia: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                    title?: string;
+                    description?: string;
+                    /**
+                     * @default 720p
+                     * @enum {string}
+                     */
+                    profile?: "480p" | "720p" | "1080p" | "1080p60";
+                };
+            };
+        };
+        responses: {
+            /** @description Upload accepted, processing started */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadResponse"];
+                };
+            };
+            /** @description Collection is locked */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getMedia: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Media details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Media"];
+                };
+            };
+            /** @description Media not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    deleteMedia: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Media deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

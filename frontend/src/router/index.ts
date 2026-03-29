@@ -14,6 +14,16 @@ const router = createRouter({
       name: 'collections',
       component: () => import('@/views/CollectionsView.vue'),
     },
+    {
+      path: '/collections/:id',
+      name: 'collection-detail',
+      component: () => import('@/views/CollectionDetailView.vue'),
+    },
+    {
+      path: '/media/:id',
+      name: 'player',
+      component: () => import('@/views/PlayerView.vue'),
+    },
   ],
 })
 
