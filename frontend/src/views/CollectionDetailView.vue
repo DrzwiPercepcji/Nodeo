@@ -5,6 +5,7 @@ import { useMediaStore } from '@/stores/media'
 import { useCollectionsStore } from '@/stores/collections'
 import { useToast } from 'primevue/usetoast'
 import Button from 'primevue/button'
+import InputText from 'primevue/inputtext'
 import AppTopbar from '@/components/AppTopbar.vue'
 import ProgressSpinner from 'primevue/progressspinner'
 import Tag from 'primevue/tag'
@@ -20,6 +21,7 @@ const collectionsStore = useCollectionsStore()
 const toast = useToast()
 
 const collectionId = route.params.id as string
+const searchQuery = ref('')
 const showUpload = ref(false)
 const uploadDialogRef = ref<InstanceType<typeof UploadDialog> | null>(null)
 const deletingId = ref<string | null>(null)
@@ -39,6 +41,20 @@ const STAGE_LABEL: Record<MediaProgress['stage'], string> = {
 
 const collection = computed(() =>
   collectionsStore.collections.find((c) => c.id === collectionId),
+)
+
+const filteredItems = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  if (!q) return mediaStore.items
+  return mediaStore.items.filter((m) => {
+    const title = (m.title ?? '').toLowerCase()
+    const desc = (m.description ?? '').toLowerCase()
+    return title.includes(q) || desc.includes(q)
+  })
+})
+
+const hasReadyAudio = computed(() =>
+  mediaStore.items.some((m) => m.status === 'ready' && m.media_type === 'audio'),
 )
 
 onMounted(async () => {
@@ -148,6 +164,15 @@ function stripFrameIndices(count: number | null | undefined): number[] {
   return Array.from({ length: n - 1 }, (_, i) => i + 1)
 }
 
+function openMedia(media: Media) {
+  if (media.status !== 'ready') return
+  if (media.media_type === 'audio') {
+    router.push({ path: `/collections/${collectionId}/playlist`, query: { start: media.id } })
+  } else {
+    router.push(`/media/${media.id}`)
+  }
+}
+
 </script>
 
 <template>
@@ -168,11 +193,34 @@ function stripFrameIndices(count: number | null | undefined): number[] {
             {{ collection.description }}
           </p>
         </div>
-        <Button
-          label="Upload"
-          icon="pi pi-upload"
-          aria-label="Upload media"
-          @click="showUpload = true"
+        <div class="header-actions">
+          <Button
+            v-if="hasReadyAudio"
+            label="Playlist"
+            icon="pi pi-list"
+            severity="secondary"
+            aria-label="Open audio playlist"
+            @click="router.push(`/collections/${collectionId}/playlist`)"
+          />
+          <Button
+            label="Upload"
+            icon="pi pi-upload"
+            aria-label="Upload media"
+            @click="showUpload = true"
+          />
+        </div>
+      </div>
+
+      <div
+        v-if="!mediaStore.loading && mediaStore.items.length > 0"
+        class="search-row"
+      >
+        <InputText
+          v-model="searchQuery"
+          type="search"
+          placeholder="Search title or description…"
+          class="search-input"
+          aria-label="Filter media by title or description"
         />
       </div>
 
@@ -193,14 +241,25 @@ function stripFrameIndices(count: number | null | undefined): number[] {
       </div>
 
       <div
+        v-else-if="filteredItems.length === 0"
+        class="empty-state"
+      >
+        <i
+          class="pi pi-search"
+          style="font-size: 3rem; color: var(--p-text-muted-color)"
+        />
+        <p>No media matches your search.</p>
+      </div>
+
+      <div
         v-else
         class="media-grid"
       >
         <div
-          v-for="media in mediaStore.items"
+          v-for="media in filteredItems"
           :key="media.id"
           class="media-card"
-          @click="media.status === 'ready' && router.push(`/media/${media.id}`)"
+          @click="openMedia(media)"
         >
           <div
             class="thumb-container"
@@ -311,7 +370,24 @@ function stripFrameIndices(count: number | null | undefined): number[] {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 2rem;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.search-row {
+  margin-bottom: 1.5rem;
+}
+
+.search-input {
+  width: 100%;
+  max-width: 28rem;
 }
 
 .content-header h1 { font-size: 1.5rem; font-weight: 600; }
