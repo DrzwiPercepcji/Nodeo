@@ -1,0 +1,276 @@
+# Nodeo — Migration Plan
+
+> Private self-hosted media streaming service with per-collection encryption and S3 storage.
+
+## Current State (Legacy)
+
+| Area | Technology | Issues |
+|------|-----------|--------|
+| Backend | Node.js + Express + Mustache (SSR) | Hard-coded secrets, sync bcrypt, no env config |
+| Frontend | jQuery + Bulma (CDN) | No SPA, no component library, mixed HTTP/HTTPS |
+| Database | MongoDB (Mongoose) | No migrations, loose schema |
+| Storage | Local filesystem | No cloud, plaintext files left after encryption |
+| Encryption | AES-128-ECB, hard-coded key | ECB mode leaks patterns, no auth (HMAC), single global key |
+| Auth | Passport + sessions | Hard-coded session secret, no JWT |
+| Docker | Single app + mongo containers | No frontend container, no env config |
+
+## Target Architecture
+
+### Tech Stack
+
+| Layer | Technology | Rationale |
+|-------|-----------|-----------|
+| **Backend** | Node.js 20+ / Express | Proven, low RAM (~30-50 MB idle), huge ecosystem |
+| **Frontend** | Vue 3 + Vite + PrimeVue | Lightweight SPA, rich component library, good DX |
+| **Database** | PostgreSQL + `pg` driver | Reliable, SQL migrations, user requirement |
+| **Storage** | AWS S3 (`@aws-sdk/client-s3`) | User requirement, cheap, durable |
+| **Encryption** | AES-256-CTR + PBKDF2 | Stream cipher (seekable), strong key derivation |
+| **Auth** | JWT (`jsonwebtoken`) | Stateless, 3-month expiry, single user from env |
+| **Transcoding** | ffmpeg (`fluent-ffmpeg`) | Industry standard, Alpine-compatible |
+| **Docker** | 2 containers: backend (Node) + frontend (Nginx + Vue SPA) | Clean separation, user requirement |
+
+### Encryption Design
+
+```
+User passphrase
+       │
+       ▼
+   PBKDF2 (100k iterations, random salt)
+       │
+       ▼
+   KEK (Key Encryption Key, 256-bit)
+       │
+       ▼
+   Decrypt encrypted_dek from DB
+       │
+       ▼
+   DEK (Data Encryption Key, 256-bit)  ← cached in memory for 1 hour
+       │
+       ▼
+   AES-256-CTR encrypt/decrypt media files
+```
+
+- **Unencrypted collections**: files stored as-is on S3, no passphrase needed.
+- **Encrypted collections**: random DEK generated on creation, wrapped with passphrase-derived KEK, stored in PostgreSQL. S3 never sees keys.
+- **AES-256-CTR**: counter mode allows random access (seeking in video). For each file, a random 16-byte IV is stored in the DB.
+- **Verification**: a known verification token is encrypted with the DEK and stored alongside — used to check if passphrase is correct without exposing the key.
+
+### Project Structure
+
+```
+nodeo/
+├── docker-compose.yml
+├── .env.example
+├── MIGRATION_PLAN.md
+├── README.md
+│
+├── backend/
+│   ├── Dockerfile
+│   ├── package.json
+│   └── src/
+│       ├── index.js              # Entry point
+│       ├── config.js             # Env-based configuration
+│       ├── db/
+│       │   ├── pool.js           # pg pool
+│       │   └── migrations/       # SQL migration files
+│       ├── middleware/
+│       │   └── auth.js           # JWT verification
+│       ├── routes/
+│       │   ├── auth.js           # POST /api/auth/login
+│       │   ├── collections.js    # CRUD /api/collections
+│       │   └── media.js          # Upload, stream, metadata
+│       └── services/
+│           ├── encryption.js     # AES-256-CTR, PBKDF2, key wrapping
+│           ├── s3.js             # S3 upload/download
+│           ├── transcoding.js    # ffmpeg profiles
+│           └── keyCache.js       # In-memory DEK cache (1h TTL)
+│
+├── frontend/
+│   ├── Dockerfile
+│   ├── nginx.conf
+│   ├── package.json
+│   └── src/
+│       ├── App.vue
+│       ├── main.ts
+│       ├── router/index.ts
+│       ├── stores/               # Pinia stores
+│       ├── views/                # Page components
+│       ├── components/           # Reusable components
+│       └── api/index.ts          # Axios HTTP client
+│
+└── old/                          # Legacy code (archived)
+```
+
+### Database Schema (PostgreSQL)
+
+```sql
+-- Collections (folders)
+CREATE TABLE collections (
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name          VARCHAR(200) NOT NULL,
+    description   TEXT,
+    is_encrypted  BOOLEAN NOT NULL DEFAULT false,
+    encrypted_dek BYTEA,            -- DEK encrypted with KEK (null if not encrypted)
+    dek_salt      BYTEA,            -- PBKDF2 salt for KEK derivation
+    dek_iv        BYTEA,            -- IV used to encrypt the DEK
+    verify_token  BYTEA,            -- encrypted known value for passphrase verification
+    cover_url     TEXT,
+    created_at    TIMESTAMPTZ DEFAULT now(),
+    updated_at    TIMESTAMPTZ DEFAULT now()
+);
+
+-- Media files (video for now, audio later)
+CREATE TABLE media (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    collection_id   UUID NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
+    title           VARCHAR(300) NOT NULL,
+    description     TEXT,
+    media_type      VARCHAR(10) NOT NULL DEFAULT 'video',  -- 'video' | 'audio'
+    duration_sec    INTEGER,
+    file_size_bytes BIGINT,
+    s3_key          TEXT NOT NULL,                          -- path in S3 bucket
+    encryption_iv   BYTEA,                                 -- per-file IV for AES-CTR
+    profile         VARCHAR(20) NOT NULL DEFAULT '720p',   -- encoding profile used
+    mime_type       VARCHAR(50),
+    thumb_s3_key    TEXT,
+    created_at      TIMESTAMPTZ DEFAULT now()
+);
+```
+
+### Transcoding Profiles
+
+| Profile | Resolution | FPS | Video Bitrate | Audio | Use Case |
+|---------|-----------|-----|--------------|-------|----------|
+| `480p`  | 854×480   | 30  | 1.5 Mbps     | 128k AAC | Mobile / slow connection |
+| `720p`  | 1280×720  | 30  | 3 Mbps       | 192k AAC | Default / abroad |
+| `1080p` | 1920×1080 | 30  | 6 Mbps       | 192k AAC | Home / good connection |
+| `1080p60` | 1920×1080 | 60 | 8 Mbps      | 192k AAC | High quality |
+
+### Docker Compose Configuration
+
+```yaml
+# Configured via .env file:
+# - POSTGRES_HOST, POSTGRES_PORT, POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD
+# - S3_BUCKET, S3_REGION, S3_ACCESS_KEY, S3_SECRET_KEY
+# - AUTH_USERNAME, AUTH_PASSWORD_HASH (bcrypt)
+# - JWT_SECRET
+# - BACKEND_PORT (default 3000)
+```
+
+---
+
+## Implementation Phases
+
+### Phase 1 — Project Scaffolding & Database `[commit 1]`
+
+- [x] Analyze legacy project
+- [ ] Archive old code into `old/` directory
+- [ ] Initialize backend (Express, `pg`, config from env)
+- [ ] Initialize frontend (Vue 3 + Vite + PrimeVue + Pinia + Vue Router)
+- [ ] Create `docker-compose.yml` (backend + frontend + dev postgres)
+- [ ] Create `.env.example` with all required variables
+- [ ] Create database migration (collections + media tables)
+- [ ] Run migrations on startup
+- [ ] Basic health-check endpoint
+
+### Phase 2 — Authentication `[commit 2]`
+
+- [ ] Backend: `POST /api/auth/login` — validate against env credentials, return JWT (90-day expiry)
+- [ ] Backend: `GET /api/auth/me` — verify JWT, return user info
+- [ ] Backend: Auth middleware for protected routes
+- [ ] Frontend: Login page (logo + form only)
+- [ ] Frontend: JWT storage, Axios interceptor, auth guard on router
+- [ ] Frontend: Auto-redirect to login when token expires
+
+### Phase 3 — Collections `[commit 3]`
+
+- [ ] Backend: CRUD for collections (`/api/collections`)
+- [ ] Backend: Collection passphrase unlock endpoint — PBKDF2 → decrypt DEK → cache 1 hour
+- [ ] Backend: Encryption service (key generation, wrapping, unwrapping, verification)
+- [ ] Backend: Key cache service (in-memory Map with TTL)
+- [ ] Frontend: Collections grid (cards/tiles view)
+- [ ] Frontend: Create/edit collection dialog (name, description, optional passphrase)
+- [ ] Frontend: Passphrase dialog for encrypted collections
+- [ ] Frontend: Visual indicator for locked/unlocked collections
+
+### Phase 4 — Video Upload & Processing `[commit 4]`
+
+- [ ] Backend: S3 service (upload, download, streaming)
+- [ ] Backend: Upload endpoint with multipart handling (`multer` or `busboy`)
+- [ ] Backend: ffmpeg transcoding service with configurable profiles
+- [ ] Backend: Encrypt-then-upload pipeline (AES-256-CTR → S3)
+- [ ] Backend: Thumbnail generation and upload to S3
+- [ ] Backend: Upload progress tracking (polling or SSE)
+- [ ] Frontend: Upload page with file picker, metadata form, profile selector
+- [ ] Frontend: Upload progress bar
+
+### Phase 5 — Video Streaming & Playback `[commit 5]`
+
+- [ ] Backend: Stream endpoint — S3 range fetch → AES-CTR decrypt → HTTP response
+- [ ] Backend: Thumbnail endpoint — S3 fetch (+ decrypt if needed)
+- [ ] Backend: Range request support (map HTTP ranges to S3 + CTR offsets)
+- [ ] Frontend: Media list view within a collection
+- [ ] Frontend: Video player page (HTML5 `<video>` with stream source)
+- [ ] Frontend: Collection detail view with media grid
+
+### Phase 6 — Polish & Hardening `[commit 6]`
+
+- [ ] Error handling (backend global handler, frontend error boundaries)
+- [ ] Input validation (backend: express-validator or joi)
+- [ ] Rate limiting on auth endpoints
+- [ ] CORS configuration
+- [ ] Production Dockerfiles (multi-stage builds, non-root user)
+- [ ] README with setup instructions
+- [ ] UI polish (responsive, dark mode via PrimeVue themes)
+
+### Future — Music Support `[separate iteration]`
+
+- [ ] MP3/audio upload and metadata extraction
+- [ ] Audio player component (waveform or simple controls)
+- [ ] Audio-specific transcoding profiles
+- [ ] Playlist support within collections
+
+---
+
+## Configuration Reference (`.env`)
+
+```env
+# Database
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_DB=nodeo
+POSTGRES_USER=nodeo
+POSTGRES_PASSWORD=changeme
+
+# S3
+S3_BUCKET=my-nodeo-bucket
+S3_REGION=eu-central-1
+S3_ACCESS_KEY=AKIA...
+S3_SECRET_KEY=secret...
+S3_ENDPOINT=                    # optional, for S3-compatible storage
+
+# Auth (single user)
+AUTH_USERNAME=admin
+AUTH_PASSWORD_HASH=$2b$12$...   # bcrypt hash
+
+# Security
+JWT_SECRET=generate-a-random-secret-here
+
+# Backend
+BACKEND_PORT=3000
+NODE_ENV=production
+
+# Frontend (build-time)
+VITE_API_URL=http://localhost:3000/api
+```
+
+---
+
+## Key Decisions & Trade-offs
+
+1. **Full rewrite vs. incremental migration**: Full rewrite chosen — the old codebase is small (~25 files) and nearly everything changes (DB, frontend, storage, encryption, auth).
+2. **Express over Fastify**: Express is more widely known and simpler to maintain. Both are lightweight on Node.js; the RAM difference is negligible.
+3. **Raw `pg` over ORM**: For ~2 tables, raw SQL is more transparent and has zero abstraction overhead. Migrations are plain `.sql` files.
+4. **AES-256-CTR over AES-GCM**: CTR is simpler for streaming large files with range requests. GCM would add authentication but complicates random-access decryption of multi-GB files. Integrity is ensured by S3's own checksums for storage corruption.
+5. **JWT over sessions**: Stateless auth simplifies the backend (no session store needed). Single user = minimal attack surface.
+6. **Video only first**: Audio support deferred to keep initial scope manageable.
