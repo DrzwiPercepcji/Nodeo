@@ -15,7 +15,7 @@
     "api:generate": "openapi-typescript ../backend/src/openapi.yaml -o src/api/schema.d.ts"
   },
   "dependencies": {
-    "@primevue/themes": "^4.5.4",
+    "@primeuix/themes": "^2.0.3",
     "openapi-fetch": "^0.17.0",
     "pinia": "^3.0.4",
     "primeicons": "^7.0.0",

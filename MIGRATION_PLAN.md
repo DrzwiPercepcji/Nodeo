@@ -132,7 +132,7 @@ CREATE TABLE media (
     encryption_iv   BYTEA,                                 -- per-file IV for AES-CTR
     profile         VARCHAR(20) NOT NULL DEFAULT '720p',   -- encoding profile used
     mime_type       VARCHAR(50),
-    thumb_s3_key    TEXT,
+    thumbnails      JSONB,        -- [{ "s3_key", "encryption_iv" | null }, ...] preview frames
     created_at      TIMESTAMPTZ DEFAULT now()
 );
 ```
@@ -229,6 +229,7 @@ CREATE TABLE media (
 - [x] Audio transcoding profiles: MP3 128/192/320 kbps, AAC 256 kbps
 - [x] Auto-detect audio vs video on upload (by MIME type and file extension)
 - [x] Audio files skip video transcoding and thumbnail generation
+- [x] Video thumbnails: up to 5 JPEG frames along the timeline; encrypted collections store `.enc` blobs on S3 with per-frame IV; `GET /media/:id/thumb?i=` serves decrypted JPEG; hover filmstrip on collection grid when `thumb_frame_count > 1`
 - [x] Correct Content-Type for audio streaming (audio/mpeg, audio/mp4)
 - [x] Upload dialog: accepts audio/*, shows audio-specific profile options
 - [x] Audio player in PlayerView (HTML5 `<audio>`, centered layout with icon)

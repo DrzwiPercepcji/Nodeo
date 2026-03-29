@@ -5,6 +5,8 @@ import {
   outputMime,
   VIDEO_PROFILES,
   AUDIO_PROFILES,
+  thumbSeekSeconds,
+  THUMB_FRAME_COUNT,
 } from '../src/services/transcoding.js';
 
 describe('detectMediaType', () => {
@@ -38,6 +40,20 @@ describe('outputExtension / outputMime', () => {
   it('aac profile uses .m4a and audio/mp4', () => {
     expect(outputExtension('audio', 'aac-256')).toBe('.m4a');
     expect(outputMime('audio', 'aac-256')).toBe('audio/mp4');
+  });
+});
+
+describe('thumbSeekSeconds', () => {
+  it('returns five positions for long enough duration', () => {
+    const s = thumbSeekSeconds(100);
+    expect(s).toHaveLength(THUMB_FRAME_COUNT);
+    expect(s[0]).toBeGreaterThanOrEqual(0);
+    expect(s[THUMB_FRAME_COUNT - 1]).toBeLessThanOrEqual(99);
+  });
+
+  it('uses fallback offsets when duration unknown', () => {
+    const s = thumbSeekSeconds(null);
+    expect(s.length).toBe(THUMB_FRAME_COUNT);
   });
 });
 

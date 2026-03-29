@@ -154,6 +154,10 @@ components:
         created_at:
           type: string
           format: date-time
+        thumb_frame_count:
+          type: integer
+          description: Number of video preview frames (0 for audio or processing)
+          minimum: 0
 
     UploadResponse:
       type: object
@@ -516,7 +520,7 @@ paths:
   /media/{id}/thumb:
     get:
       operationId: getMediaThumb
-      summary: Get media thumbnail
+      summary: Get media thumbnail frame (JPEG)
       tags: [media]
       security:
         - bearerAuth: []
@@ -527,6 +531,13 @@ paths:
           schema:
             type: string
             format: uuid
+        - name: i
+          in: query
+          description: Frame index from 0 (multiple frames for video hover preview)
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
       responses:
         '200':
           description: Thumbnail image

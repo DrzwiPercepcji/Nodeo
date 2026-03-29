@@ -102,6 +102,13 @@ function formatSize(bytes: number | null | undefined): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 }
 
+/** Extra preview frame indices (1..n-1) for hover strip; main poster uses frame 0. */
+function stripFrameIndices(count: number | null | undefined): number[] {
+  const n = typeof count === 'number' ? count : 0
+  if (n <= 1) return []
+  return Array.from({ length: n - 1 }, (_, i) => i + 1)
+}
+
 </script>
 
 <template>
@@ -156,14 +163,30 @@ function formatSize(bytes: number | null | undefined): string {
           class="media-card"
           @click="media.status === 'ready' && router.push(`/media/${media.id}`)"
         >
-          <div class="thumb-container">
+          <div
+            class="thumb-container"
+            :class="{ 'has-hover-strip': (media.thumb_frame_count ?? 0) > 1 }"
+          >
             <img
               v-if="media.status === 'ready' && media.media_type === 'video'"
-              :src="mediaStore.thumbUrl(media.id)"
+              :src="mediaStore.thumbUrl(media.id, 0)"
               :alt="media.title"
               class="thumb"
               loading="lazy"
             >
+            <div
+              v-if="media.status === 'ready' && media.media_type === 'video' && stripFrameIndices(media.thumb_frame_count).length"
+              class="thumb-strip"
+              aria-hidden="true"
+            >
+              <img
+                v-for="fi in stripFrameIndices(media.thumb_frame_count)"
+                :key="fi"
+                :src="mediaStore.thumbUrl(media.id, fi)"
+                alt=""
+                loading="lazy"
+              >
+            </div>
             <div
               v-else-if="media.status === 'ready' && media.media_type === 'audio'"
               class="thumb-placeholder audio-thumb"
@@ -299,6 +322,32 @@ function formatSize(bytes: number | null | undefined): string {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.thumb-strip {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  gap: 3px;
+  padding: 6px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.88));
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.has-hover-strip:hover .thumb-strip {
+  opacity: 1;
+}
+
+.thumb-strip img {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 3px;
 }
 
 .thumb-placeholder {

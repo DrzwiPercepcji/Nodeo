@@ -78,10 +78,11 @@ export const useMediaStore = defineStore('media', () => {
     return `${baseUrl}/media/${mediaId}/stream?token=${encodeURIComponent(token)}`
   }
 
-  function thumbUrl(mediaId: string): string {
+  function thumbUrl(mediaId: string, frameIndex = 0): string {
     const token = localStorage.getItem('nodeo_token') || ''
     const baseUrl = import.meta.env.VITE_API_URL || '/api'
-    return `${baseUrl}/media/${mediaId}/thumb?token=${encodeURIComponent(token)}`
+    const i = frameIndex > 0 ? `&i=${frameIndex}` : ''
+    return `${baseUrl}/media/${mediaId}/thumb?token=${encodeURIComponent(token)}${i}`
   }
 
   return { items, loading, fetchByCollection, fetchSingle, remove, upload, streamUrl, thumbUrl }

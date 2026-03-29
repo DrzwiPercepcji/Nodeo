@@ -72,15 +72,38 @@ export async function transcodeAudio(inputPath: string, outputPath: string, prof
   ]);
 }
 
-export async function generateThumbnail(inputPath: string, outputPath: string): Promise<void> {
+/** Number of preview frames extracted along the timeline (video only). */
+export const THUMB_FRAME_COUNT = 5;
+
+const THUMB_SEEK_RATIOS = [0.04, 0.12, 0.28, 0.52, 0.78];
+
+/** Seek positions in seconds for thumbnail grabs (after duration is known). */
+export function thumbSeekSeconds(durationSec: number | null | undefined): number[] {
+  const d = typeof durationSec === 'number' && durationSec > 1 ? Math.floor(durationSec) : null;
+  if (d !== null) {
+    return THUMB_SEEK_RATIOS.map((r) => {
+      const s = Math.floor(r * d);
+      return Math.max(0, Math.min(s, d - 1));
+    });
+  }
+  return [1, 2, 3, 5, 8];
+}
+
+/** Single frame at `seekSec` (fast seek: -ss before -i). */
+export async function generateThumbnailAt(inputPath: string, outputPath: string, seekSec: number): Promise<void> {
   await runProcess('ffmpeg', [
-    '-y', '-i', inputPath,
-    '-ss', '00:00:03',
+    '-y', '-ss', String(seekSec),
+    '-i', inputPath,
     '-vframes', '1',
     '-vf', 'scale=480:-1',
     '-q:v', '5',
     outputPath,
   ]);
+}
+
+/** @deprecated Use {@link generateThumbnailAt} with duration-based seeks. */
+export async function generateThumbnail(inputPath: string, outputPath: string): Promise<void> {
+  await generateThumbnailAt(inputPath, outputPath, 3);
 }
 
 export async function probeDuration(inputPath: string): Promise<number | null> {

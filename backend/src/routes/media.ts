@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
+import type { Readable } from 'node:stream';
 import multer from 'multer';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -9,12 +10,13 @@ import { requireAuth } from '../middleware/auth.js';
 import { asyncHandler } from '../middleware/asyncHandler.js';
 import pool from '../db/pool.js';
 import { getCachedDek } from '../services/keyCache.js';
-import { generateFileIv, encryptFile, createStreamDecipher } from '../services/encryption.js';
+import { generateFileIv, encryptFile, createStreamDecipher, decrypt } from '../services/encryption.js';
 import * as s3 from '../services/s3.js';
 import {
-  transcodeVideo, transcodeAudio, generateThumbnail, probeDuration, getFileSize,
+  transcodeVideo, transcodeAudio, probeDuration, getFileSize,
   VIDEO_PROFILES, AUDIO_PROFILES,
   detectMediaType, outputExtension, outputMime,
+  thumbSeekSeconds, generateThumbnailAt, THUMB_FRAME_COUNT,
 } from '../services/transcoding.js';
 
 const router = Router();
@@ -22,6 +24,11 @@ router.use(requireAuth);
 
 const TEMP_DIR = join(tmpdir(), 'nodeo-uploads');
 const upload = multer({ dest: TEMP_DIR, limits: { fileSize: 10 * 1024 * 1024 * 1024 } });
+
+interface ThumbnailFrame {
+  s3_key: string;
+  encryption_iv: string | null;
+}
 
 async function ensureTempDir() {
   await mkdir(TEMP_DIR, { recursive: true });
@@ -33,9 +40,22 @@ async function cleanupFiles(...paths: string[]) {
   }
 }
 
+async function readableToBuffer(body: Readable): Promise<Buffer> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of body) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
+}
+
 function getDekForCollection(collectionId: string, isEncrypted: boolean): Buffer | null {
   if (!isEncrypted) return null;
   return getCachedDek(collectionId);
+}
+
+function parseThumbnails(row: unknown): ThumbnailFrame[] {
+  if (!row || !Array.isArray(row)) return [];
+  return row as ThumbnailFrame[];
 }
 
 router.post('/collections/:collectionId/media', upload.single('file'), asyncHandler(async (req: Request, res: Response) => {
@@ -79,47 +99,54 @@ router.post('/collections/:collectionId/media', upload.single('file'), asyncHand
   const ext = outputExtension(mediaType, profileName);
   const mimeType = outputMime(mediaType, profileName);
   const s3Key = `collections/${collectionId}/media/${mediaId}${ext}`;
-  const thumbS3Key = mediaType === 'video' ? `collections/${collectionId}/thumbs/${mediaId}.jpg` : null;
 
   await pool.query(
-    `INSERT INTO media (id, collection_id, title, description, media_type, profile, s3_key, thumb_s3_key, mime_type, status, original_name)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'processing', $10)`,
-    [mediaId, collectionId, title, description, mediaType, profileName, s3Key, thumbS3Key, mimeType, file.originalname],
+    `INSERT INTO media (id, collection_id, title, description, media_type, profile, s3_key, mime_type, status, original_name)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'processing', $9)`,
+    [mediaId, collectionId, title, description, mediaType, profileName, s3Key, mimeType, file.originalname],
   );
 
   res.status(202).json({ id: mediaId, status: 'processing' });
 
-  processUpload(mediaId, collectionId, collection.is_encrypted as boolean, mediaType, file.path, profileName, s3Key, thumbS3Key, mimeType).catch((err: Error) => {
+  processUpload(mediaId, collectionId, collection.is_encrypted as boolean, mediaType, file.path, profileName, s3Key, mimeType).catch((err: Error) => {
     console.error(`Processing failed for ${mediaId}:`, err.message);
   });
 }));
 
 async function processUpload(
   mediaId: string, collectionId: string, isEncrypted: boolean, mediaType: 'video' | 'audio',
-  inputPath: string, profileName: string, s3Key: string, thumbS3Key: string | null, mimeType: string,
+  inputPath: string, profileName: string, s3Key: string, mimeType: string,
 ) {
   const ext = outputExtension(mediaType, profileName);
   const transcodedPath = join(TEMP_DIR, `${mediaId}${ext}`);
-  const thumbPath = thumbS3Key ? join(TEMP_DIR, `${mediaId}.jpg`) : null;
   const encryptedPath = join(TEMP_DIR, `${mediaId}.enc${ext}`);
+  const thumbPaths: string[] = [];
+  const encThumbPaths: string[] = [];
 
   try {
     if (mediaType === 'video') {
       console.log(`[${mediaId}] Transcoding video with profile ${profileName}...`);
       await transcodeVideo(inputPath, transcodedPath, profileName);
-
-      if (thumbPath) {
-        console.log(`[${mediaId}] Generating thumbnail...`);
-        await generateThumbnail(inputPath, thumbPath).catch(() =>
-          generateThumbnail(transcodedPath, thumbPath),
-        );
-      }
     } else {
       console.log(`[${mediaId}] Transcoding audio with profile ${profileName}...`);
       await transcodeAudio(inputPath, transcodedPath, profileName);
     }
 
     const duration = await probeDuration(transcodedPath);
+
+    if (mediaType === 'video') {
+      const seeks = thumbSeekSeconds(duration);
+      console.log(`[${mediaId}] Generating ${seeks.length} thumbnail frames...`);
+      for (let i = 0; i < Math.min(seeks.length, THUMB_FRAME_COUNT); i++) {
+        const p = join(TEMP_DIR, `${mediaId}-thumb-${i}.jpg`);
+        try {
+          await generateThumbnailAt(transcodedPath, p, seeks[i]!);
+          thumbPaths.push(p);
+        } catch {
+          await cleanupFiles(p);
+        }
+      }
+    }
 
     let encryptionIv: Buffer | null = null;
     let uploadPath = transcodedPath;
@@ -128,7 +155,7 @@ async function processUpload(
       const dek = getCachedDek(collectionId);
       if (dek) {
         encryptionIv = generateFileIv();
-        console.log(`[${mediaId}] Encrypting...`);
+        console.log(`[${mediaId}] Encrypting main file...`);
         await encryptFile(dek, encryptionIv, transcodedPath, encryptedPath);
         uploadPath = encryptedPath;
       }
@@ -138,23 +165,51 @@ async function processUpload(
 
     console.log(`[${mediaId}] Uploading to S3...`);
     await s3.uploadFile(s3Key, uploadPath, mimeType);
-    if (thumbPath && thumbS3Key) {
-      await s3.uploadFile(thumbS3Key, thumbPath, 'image/jpeg');
+
+    const frames: ThumbnailFrame[] = [];
+    const dek = isEncrypted ? getCachedDek(collectionId) : null;
+
+    for (let i = 0; i < thumbPaths.length; i++) {
+      const thumbPath = thumbPaths[i]!;
+      const frameKey = `collections/${collectionId}/thumbs/${mediaId}/${i}.jpg`;
+      const frameKeyEnc = `collections/${collectionId}/thumbs/${mediaId}/${i}.enc`;
+
+      if (dek) {
+        const iv = generateFileIv();
+        const encPath = join(TEMP_DIR, `${mediaId}-thumb-${i}.enc`);
+        await encryptFile(dek, iv, thumbPath, encPath);
+        encThumbPaths.push(encPath);
+        await s3.uploadFile(frameKeyEnc, encPath, 'application/octet-stream');
+        frames.push({ s3_key: frameKeyEnc, encryption_iv: iv.toString('base64') });
+      } else {
+        await s3.uploadFile(frameKey, thumbPath, 'image/jpeg');
+        frames.push({ s3_key: frameKey, encryption_iv: null });
+      }
     }
 
     await pool.query(
-      `UPDATE media SET status = 'ready', duration_sec = $1, file_size_bytes = $2, encryption_iv = $3 WHERE id = $4`,
-      [duration, fileSize, encryptionIv, mediaId],
+      `UPDATE media SET status = 'ready', duration_sec = $1, file_size_bytes = $2, encryption_iv = $3, thumbnails = $4::jsonb WHERE id = $5`,
+      [duration, fileSize, encryptionIv, JSON.stringify(frames), mediaId],
     );
 
     console.log(`[${mediaId}] Done.`);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error(`[${mediaId}] Error:`, message);
+    const code = err && typeof err === 'object' && 'code' in err
+      ? String((err as { code: unknown }).code)
+      : '';
+    const name = err && typeof err === 'object' && 'name' in err
+      ? String((err as { name: unknown }).name)
+      : '';
+    console.error(
+      `[${mediaId}] Processing error:`,
+      message,
+      [name, code].filter(Boolean).join(' '),
+      err instanceof Error && err.stack ? `\n${err.stack}` : '',
+    );
     await pool.query(`UPDATE media SET status = 'error' WHERE id = $1`, [mediaId]);
   } finally {
-    const toClean = [inputPath, transcodedPath, encryptedPath];
-    if (thumbPath) toClean.push(thumbPath);
+    const toClean = [inputPath, transcodedPath, encryptedPath, ...thumbPaths, ...encThumbPaths];
     await cleanupFiles(...toClean);
   }
 }
@@ -163,7 +218,8 @@ router.get('/collections/:collectionId/media', asyncHandler(async (req, res) => 
   const collectionId = req.params.collectionId as string;
   const { rows } = await pool.query(
     `SELECT m.id, m.title, m.description, m.media_type, m.duration_sec, m.file_size_bytes,
-            m.profile, m.mime_type, m.status, m.created_at
+            m.profile, m.mime_type, m.status, m.created_at,
+            COALESCE(jsonb_array_length(m.thumbnails), 0)::int AS thumb_frame_count
      FROM media m WHERE m.collection_id = $1 ORDER BY m.created_at DESC`,
     [collectionId],
   );
@@ -172,7 +228,11 @@ router.get('/collections/:collectionId/media', asyncHandler(async (req, res) => 
 
 router.get('/media/:id', asyncHandler(async (req, res) => {
   const { rows } = await pool.query(
-    `SELECT m.*, c.is_encrypted FROM media m JOIN collections c ON m.collection_id = c.id WHERE m.id = $1`,
+    `SELECT m.id, m.collection_id, m.title, m.description, m.media_type, m.duration_sec, m.file_size_bytes,
+            m.profile, m.mime_type, m.status, m.created_at, m.s3_key, m.encryption_iv, m.original_name,
+            c.is_encrypted,
+            COALESCE(jsonb_array_length(m.thumbnails), 0)::int AS thumb_frame_count
+     FROM media m JOIN collections c ON m.collection_id = c.id WHERE m.id = $1`,
     [req.params.id],
   );
   if (rows.length === 0) { res.status(404).json({ error: 'Media not found' }); return; }
@@ -271,18 +331,59 @@ router.get('/media/:id/stream', asyncHandler(async (req: Request, res: Response)
 }));
 
 router.get('/media/:id/thumb', asyncHandler(async (req, res) => {
+  const frameIndex = Math.max(0, parseInt(String(req.query.i ?? '0'), 10) || 0);
+
   const { rows } = await pool.query(
-    'SELECT thumb_s3_key FROM media WHERE id = $1', [req.params.id],
+    `SELECT m.thumbnails, m.collection_id, c.is_encrypted
+     FROM media m JOIN collections c ON m.collection_id = c.id
+     WHERE m.id = $1 AND m.status = 'ready'`,
+    [req.params.id],
   );
-  if (rows.length === 0 || !rows[0].thumb_s3_key) {
+
+  if (rows.length === 0) {
+    res.status(404).json({ error: 'Media not found' });
+    return;
+  }
+
+  const frames = parseThumbnails(rows[0].thumbnails);
+  if (frameIndex >= frames.length || frames.length === 0) {
     res.status(404).json({ error: 'Thumbnail not found' });
     return;
   }
 
+  const frame = frames[frameIndex]!;
+  const dek = getDekForCollection(rows[0].collection_id, rows[0].is_encrypted);
+
+  if (frame.encryption_iv && rows[0].is_encrypted && !dek) {
+    res.status(403).json({ error: 'Collection is locked' });
+    return;
+  }
+
   try {
-    const obj = await s3.getObject(rows[0].thumb_s3_key);
-    res.writeHead(200, { 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=86400' });
-    obj.body.pipe(res);
+    const obj = await s3.getObject(frame.s3_key);
+    const body = await readableToBuffer(obj.body as Readable);
+
+    if (frame.encryption_iv) {
+      if (!dek) {
+        res.status(403).json({ error: 'Collection is locked' });
+        return;
+      }
+      const iv = Buffer.from(frame.encryption_iv, 'base64');
+      const jpeg = decrypt(dek, iv, body);
+      res.writeHead(200, {
+        'Content-Type': 'image/jpeg',
+        'Content-Length': jpeg.length,
+        'Cache-Control': 'private, max-age=3600',
+      });
+      res.end(jpeg);
+    } else {
+      res.writeHead(200, {
+        'Content-Type': 'image/jpeg',
+        'Content-Length': body.length,
+        'Cache-Control': 'private, max-age=86400',
+      });
+      res.end(body);
+    }
   } catch {
     res.status(404).json({ error: 'Thumbnail not found' });
   }
@@ -290,12 +391,14 @@ router.get('/media/:id/thumb', asyncHandler(async (req, res) => {
 
 router.delete('/media/:id', asyncHandler(async (req, res) => {
   const { rows } = await pool.query(
-    'SELECT s3_key, thumb_s3_key FROM media WHERE id = $1', [req.params.id],
+    'SELECT s3_key, thumbnails FROM media WHERE id = $1', [req.params.id],
   );
   if (rows.length === 0) { res.status(404).json({ error: 'Media not found' }); return; }
 
   await s3.deleteObject(rows[0].s3_key).catch(() => {});
-  if (rows[0].thumb_s3_key) await s3.deleteObject(rows[0].thumb_s3_key).catch(() => {});
+  for (const f of parseThumbnails(rows[0].thumbnails)) {
+    await s3.deleteObject(f.s3_key).catch(() => {});
+  }
   await pool.query('DELETE FROM media WHERE id = $1', [req.params.id]);
 
   res.status(204).end();

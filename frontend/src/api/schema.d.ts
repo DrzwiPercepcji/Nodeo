@@ -169,7 +169,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get media thumbnail */
+        /** Get media thumbnail frame (JPEG) */
         get: operations["getMediaThumb"];
         put?: never;
         post?: never;
@@ -250,6 +250,8 @@ export interface components {
             status: "processing" | "ready" | "error";
             /** Format: date-time */
             created_at: string;
+            /** @description Number of video preview frames (0 for audio or processing) */
+            thumb_frame_count?: number;
         };
         UploadResponse: {
             /** Format: uuid */
@@ -662,7 +664,10 @@ export interface operations {
     };
     getMediaThumb: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Frame index from 0 (multiple frames for video hover preview) */
+                i?: number;
+            };
             header?: never;
             path: {
                 id: string;
