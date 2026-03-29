@@ -68,7 +68,7 @@ async function handleUpload(data: { file: File; title: string; description: stri
     )
     uploadDialogRef.value?.done()
     showUpload.value = false
-    toast.add({ severity: 'info', summary: 'Processing', detail: 'Video uploaded, transcoding in progress...', life: 5000 })
+    toast.add({ severity: 'info', summary: 'Processing', detail: 'File uploaded, processing in progress...', life: 5000 })
     await mediaStore.fetchByCollection(collectionId)
     pollStatus(mediaId)
   } catch {
@@ -114,14 +114,14 @@ function formatSize(bytes: number | null | undefined): string {
           <h1>{{ collection?.name }}</h1>
           <p v-if="collection?.description" class="subtitle">{{ collection.description }}</p>
         </div>
-        <Button label="Upload" icon="pi pi-upload" @click="showUpload = true" />
+        <Button label="Upload" icon="pi pi-upload" @click="showUpload = true" aria-label="Upload media" />
       </div>
 
       <ProgressSpinner v-if="mediaStore.loading" class="spinner" />
 
       <div v-else-if="mediaStore.items.length === 0" class="empty-state">
         <i class="pi pi-video" style="font-size: 3rem; color: var(--p-text-muted-color)"></i>
-        <p>No videos yet. Upload one to get started.</p>
+        <p>No media yet. Upload a video or audio file to get started.</p>
       </div>
 
       <div v-else class="media-grid">
@@ -133,12 +133,15 @@ function formatSize(bytes: number | null | undefined): string {
         >
           <div class="thumb-container">
             <img
-              v-if="media.status === 'ready'"
+              v-if="media.status === 'ready' && media.media_type === 'video'"
               :src="mediaStore.thumbUrl(media.id)"
               :alt="media.title"
               class="thumb"
               loading="lazy"
             />
+            <div v-else-if="media.status === 'ready' && media.media_type === 'audio'" class="thumb-placeholder audio-thumb">
+              <i class="pi pi-headphones" style="font-size: 2.5rem; color: var(--p-primary-color)" />
+            </div>
             <div v-else class="thumb-placeholder">
               <ProgressSpinner v-if="media.status === 'processing'" style="width: 2rem; height: 2rem" />
               <i v-else class="pi pi-exclamation-triangle" style="font-size: 1.5rem; color: var(--p-red-500)" />

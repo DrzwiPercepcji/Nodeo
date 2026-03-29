@@ -224,12 +224,20 @@ CREATE TABLE media (
 - [x] Responsive: mobile-friendly topbar, collection grid, media grid
 - [x] README: comprehensive setup instructions, architecture table, config reference
 
-### Future — Music Support `[separate iteration]`
+### Phase 7 — Music / Audio Support `[commit 7]` ✅
 
-- [ ] MP3/audio upload and metadata extraction
-- [ ] Audio player component (waveform or simple controls)
-- [ ] Audio-specific transcoding profiles
+- [x] Audio transcoding profiles: MP3 128/192/320 kbps, AAC 256 kbps
+- [x] Auto-detect audio vs video on upload (by MIME type and file extension)
+- [x] Audio files skip video transcoding and thumbnail generation
+- [x] Correct Content-Type for audio streaming (audio/mpeg, audio/mp4)
+- [x] Upload dialog: accepts audio/*, shows audio-specific profile options
+- [x] Audio player in PlayerView (HTML5 `<audio>`, centered layout with icon)
+- [x] Audio icon in collection grid (headphones instead of video thumbnail)
+
+### Future
+
 - [ ] Playlist support within collections
+- [ ] Audio cover art extraction from ID3 tags
 
 ---
 

@@ -554,7 +554,7 @@ export interface operations {
                      * @default 720p
                      * @enum {string}
                      */
-                    profile?: "480p" | "720p" | "1080p" | "1080p60";
+                    profile?: "480p" | "720p" | "1080p" | "1080p60" | "mp3-128" | "mp3-192" | "mp3-320" | "aac-256";
                 };
             };
         };
