@@ -77,7 +77,7 @@ function handleCollectionClick(col: Collection) {
     showUnlock.value = true
     return
   }
-  // TODO Phase 5: navigate to collection media view
+  toast.add({ severity: 'info', summary: col.name, detail: 'Media view coming in Phase 5', life: 2000 })
 }
 
 async function handleUnlock(passphrase: string) {
