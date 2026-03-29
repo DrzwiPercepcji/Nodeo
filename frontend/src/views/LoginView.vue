@@ -33,8 +33,8 @@ async function handleLogin() {
   <div class="login-container">
     <div class="login-card">
       <div class="login-header">
-        <h1>Nodeo</h1>
-        <p>Private media streaming</p>
+        <img src="/logo.svg" alt="Nodeo" class="login-logo" width="280" height="115" />
+        <p class="login-tagline">Private media streaming</p>
       </div>
 
       <form
@@ -99,14 +99,15 @@ async function handleLogin() {
   margin-bottom: 2rem;
 }
 
-.login-header h1 {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--p-primary-color);
+.login-logo {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
 }
 
-.login-header p {
-  margin-top: 0.25rem;
+.login-tagline {
+  margin-top: 1rem;
   color: var(--p-text-muted-color);
   font-size: 0.9rem;
 }

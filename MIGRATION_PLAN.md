@@ -89,6 +89,8 @@ nodeo/
 │   ├── Dockerfile
 │   ├── nginx.conf
 │   ├── package.json
+│   ├── public/
+│   │   └── logo.svg              # Brand logo (from original project)
 │   └── src/
 │       ├── App.vue
 │       ├── main.ts
@@ -96,9 +98,7 @@ nodeo/
 │       ├── stores/               # Pinia stores
 │       ├── views/                # Page components
 │       ├── components/           # Reusable components
-│       └── api/index.ts          # Axios HTTP client
-│
-└── old/                          # Legacy code (archived)
+│       └── api/index.ts          # openapi-fetch client
 ```
 
 ### Database Schema (PostgreSQL)
@@ -164,7 +164,7 @@ CREATE TABLE media (
 ### Phase 1 — Project Scaffolding & Database `[commit 1]` ✓
 
 - [x] Analyze legacy project
-- [x] Archive old code into `old/` directory
+- [x] Legacy prototype code removed; logo kept at `frontend/public/logo.svg`
 - [x] Initialize backend (Express, `pg`, config from env)
 - [x] Initialize frontend (Vue 3 + Vite + PrimeVue + Pinia + Vue Router)
 - [x] Create `docker-compose.yml` (backend + frontend + dev postgres)
