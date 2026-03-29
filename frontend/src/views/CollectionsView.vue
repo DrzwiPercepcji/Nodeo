@@ -1,19 +1,18 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { useAuthStore } from '@/stores/auth'
 import { useCollectionsStore } from '@/stores/collections'
 import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import Button from 'primevue/button'
 import ProgressSpinner from 'primevue/progressspinner'
 import ConfirmDialog from 'primevue/confirmdialog'
+import AppTopbar from '@/components/AppTopbar.vue'
 import CollectionDialog from '@/components/CollectionDialog.vue'
 import UnlockDialog from '@/components/UnlockDialog.vue'
 import type { components } from '@/api/schema'
 
 type Collection = components['schemas']['Collection']
 
-const auth = useAuthStore()
 const store = useCollectionsStore()
 const router = useRouter()
 const toast = useToast()
@@ -27,11 +26,6 @@ const unlockDialogRef = ref<InstanceType<typeof UnlockDialog> | null>(null)
 const deletingId = ref<string | null>(null)
 
 onMounted(() => store.fetchAll())
-
-function handleLogout() {
-  auth.logout()
-  router.push('/login')
-}
 
 async function handleCreate(data: { name: string; description: string; passphrase?: string }) {
   try {
@@ -96,13 +90,7 @@ async function handleUnlock(passphrase: string) {
 
 <template>
   <div class="layout">
-    <header class="topbar">
-      <h2>Nodeo</h2>
-      <div class="topbar-actions">
-        <span class="username">{{ auth.username }}</span>
-        <Button icon="pi pi-sign-out" text rounded severity="secondary" @click="handleLogout" />
-      </div>
-    </header>
+    <AppTopbar />
 
     <main class="content">
       <div class="content-header">
@@ -174,32 +162,6 @@ async function handleUnlock(passphrase: string) {
 <style scoped>
 .layout {
   min-height: 100vh;
-}
-
-.topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 1.5rem;
-  background: var(--p-surface-card);
-  border-bottom: 1px solid var(--p-surface-border);
-}
-
-.topbar h2 {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--p-primary-color);
-}
-
-.topbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.username {
-  font-size: 0.875rem;
-  color: var(--p-text-muted-color);
 }
 
 .content {

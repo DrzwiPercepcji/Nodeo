@@ -3,9 +3,9 @@ import { onMounted, ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useMediaStore } from '@/stores/media'
 import { useCollectionsStore } from '@/stores/collections'
-import { useAuthStore } from '@/stores/auth'
 import { useToast } from 'primevue/usetoast'
 import Button from 'primevue/button'
+import AppTopbar from '@/components/AppTopbar.vue'
 import ProgressSpinner from 'primevue/progressspinner'
 import Tag from 'primevue/tag'
 import UploadDialog from '@/components/UploadDialog.vue'
@@ -14,7 +14,6 @@ const route = useRoute()
 const router = useRouter()
 const mediaStore = useMediaStore()
 const collectionsStore = useCollectionsStore()
-const auth = useAuthStore()
 const toast = useToast()
 
 const collectionId = route.params.id as string
@@ -103,24 +102,11 @@ function formatSize(bytes: number | null | undefined): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 }
 
-function handleLogout() {
-  auth.logout()
-  router.push('/login')
-}
 </script>
 
 <template>
   <div class="layout">
-    <header class="topbar">
-      <div class="topbar-left">
-        <Button icon="pi pi-arrow-left" text rounded severity="secondary" @click="router.push('/')" />
-        <h2>{{ collection?.name ?? 'Collection' }}</h2>
-      </div>
-      <div class="topbar-actions">
-        <span class="username">{{ auth.username }}</span>
-        <Button icon="pi pi-sign-out" text rounded severity="secondary" @click="handleLogout" />
-      </div>
-    </header>
+    <AppTopbar :title="collection?.name ?? 'Collection'" showBack />
 
     <main class="content">
       <div class="content-header">
@@ -195,20 +181,6 @@ function handleLogout() {
 
 <style scoped>
 .layout { min-height: 100vh; }
-
-.topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 1.5rem;
-  background: var(--p-surface-card);
-  border-bottom: 1px solid var(--p-surface-border);
-}
-
-.topbar-left { display: flex; align-items: center; gap: 0.5rem; }
-.topbar-left h2 { font-size: 1.25rem; font-weight: 700; color: var(--p-primary-color); }
-.topbar-actions { display: flex; align-items: center; gap: 0.5rem; }
-.username { font-size: 0.875rem; color: var(--p-text-muted-color); }
 
 .content { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem; }
 

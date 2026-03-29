@@ -9,6 +9,7 @@ function required(name: string): string {
 const config = {
   port: parseInt(process.env.BACKEND_PORT || '3000', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
+  corsOrigin: process.env.CORS_ORIGIN || '*',
 
   db: {
     host: required('POSTGRES_HOST'),

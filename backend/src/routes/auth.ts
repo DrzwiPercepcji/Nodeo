@@ -3,16 +3,16 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import config from '../config.js';
 import { requireAuth } from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
+import { asyncHandler } from '../middleware/asyncHandler.js';
 
 const router = Router();
 
-router.post('/login', async (req, res) => {
-  const { username, password } = req.body as { username?: string; password?: string };
-
-  if (!username || !password) {
-    res.status(400).json({ error: 'Username and password required' });
-    return;
-  }
+router.post('/login', validate([
+  { field: 'username', required: true, maxLength: 100 },
+  { field: 'password', required: true, maxLength: 200 },
+]), asyncHandler(async (req, res) => {
+  const { username, password } = req.body as { username: string; password: string };
 
   if (username !== config.auth.username) {
     res.status(401).json({ error: 'Invalid credentials' });
@@ -32,7 +32,7 @@ router.post('/login', async (req, res) => {
   );
 
   res.json({ token, expiresIn: config.auth.jwtExpiresIn });
-});
+}));
 
 router.get('/me', requireAuth, (req, res) => {
   res.json({ username: req.user!.username });

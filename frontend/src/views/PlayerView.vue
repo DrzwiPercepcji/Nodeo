@@ -2,8 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useMediaStore } from '@/stores/media'
-import { useAuthStore } from '@/stores/auth'
-import Button from 'primevue/button'
+import AppTopbar from '@/components/AppTopbar.vue'
 import type { components } from '@/api/schema'
 
 type Media = components['schemas']['Media']
@@ -11,7 +10,6 @@ type Media = components['schemas']['Media']
 const route = useRoute()
 const router = useRouter()
 const mediaStore = useMediaStore()
-const auth = useAuthStore()
 
 const mediaId = route.params.id as string
 const media = ref<Media | null>(null)
@@ -35,24 +33,12 @@ function formatSize(bytes: number | null | undefined): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 }
 
-function handleLogout() {
-  auth.logout()
-  router.push('/login')
-}
+
 </script>
 
 <template>
   <div class="layout">
-    <header class="topbar">
-      <div class="topbar-left">
-        <Button icon="pi pi-arrow-left" text rounded severity="secondary" @click="router.back()" />
-        <h2>{{ media?.title ?? 'Player' }}</h2>
-      </div>
-      <div class="topbar-actions">
-        <span class="username">{{ auth.username }}</span>
-        <Button icon="pi pi-sign-out" text rounded severity="secondary" @click="handleLogout" />
-      </div>
-    </header>
+    <AppTopbar :title="media?.title ?? 'Player'" showBack />
 
     <main class="player-content" v-if="media">
       <div class="video-wrapper">
@@ -81,20 +67,6 @@ function handleLogout() {
 
 <style scoped>
 .layout { min-height: 100vh; background: #000; }
-
-.topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.5rem 1.5rem;
-  background: rgba(0, 0, 0, 0.9);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.topbar-left { display: flex; align-items: center; gap: 0.5rem; }
-.topbar-left h2 { font-size: 1rem; font-weight: 600; color: #fff; }
-.topbar-actions { display: flex; align-items: center; gap: 0.5rem; }
-.username { font-size: 0.875rem; color: rgba(255, 255, 255, 0.6); }
 
 .player-content {
   max-width: 1200px;

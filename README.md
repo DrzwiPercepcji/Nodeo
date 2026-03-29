@@ -2,56 +2,117 @@
 
 Private self-hosted media streaming service with per-collection encryption and S3 storage.
 
+## Features
+
+- **Single-user auth** — JWT with 90-day sessions, credentials from env
+- **Collections** — organize media into folders, each optionally encrypted
+- **Per-collection encryption** — AES-256-CTR with PBKDF2-derived keys; AWS never sees your keys
+- **Video upload** — transcoding to multiple profiles (480p/720p/1080p/1080p60) via ffmpeg
+- **Encrypted streaming** — range-request support with seekable CTR decryption
+- **S3 storage** — any S3-compatible backend (AWS, MinIO, etc.)
+- **Dark mode** — toggle with persistent preference
+- **Docker Compose** — two containers (backend + frontend) + PostgreSQL
+
 ## Quick Start
 
-1. Copy and configure environment:
-   ```bash
-   cp .env.example .env
-   # Edit .env with your values (Postgres, S3, auth credentials)
-   ```
+### 1. Provision S3
 
-   **Bcrypt hash in `.env`:** Docker Compose treats `$` as variable interpolation. Double every `$` in `AUTH_PASSWORD_HASH` (e.g. `$2a$12$...` → `$$2a$$12$$...`), or login will always fail with “invalid credentials”.
+See [docs/infra.md](docs/infra.md) for Terraform / CloudFormation setup.
 
-2. Generate password hash and JWT secret (run from `backend/` so `bcryptjs` resolves):
-   ```bash
-   cd backend
+### 2. Configure
 
-   # Password hash
-   node -e "console.log(require('bcryptjs').hashSync('your-password', 12))"
+```bash
+cp .env.example .env
+```
 
-   # JWT secret
-   node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
-   ```
+Generate secrets (run from `backend/`):
 
-   If you prefer dynamic `import`, bcryptjs exposes the API on `default`:
-   ```bash
-   node -e "import('bcryptjs').then(m => console.log(m.default.hashSync('your-password', 12)))"
-   ```
+```bash
+cd backend
 
-3. Start with Docker Compose:
-   ```bash
-   docker compose up -d
-   ```
+# Password hash
+node -e "console.log(require('bcryptjs').hashSync('your-password', 12))"
 
-4. Open `http://localhost:8080` and log in.
+# JWT secret
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+```
+
+**Bcrypt hash in `.env`:** Docker Compose treats `$` as variable interpolation. Double every `$` in `AUTH_PASSWORD_HASH` (e.g. `$2a$12$...` → `$$2a$$12$$...`), or login will always fail with "invalid credentials".
+
+Fill in `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` from your S3 setup.
+
+### 3. Run
+
+```bash
+docker compose up -d --build
+```
+
+Open `http://localhost:8080` and log in.
 
 ## Development
 
 ```bash
-# Backend
+# Start Postgres
+docker run -d --name nodeo-pg \
+  -e POSTGRES_DB=nodeo -e POSTGRES_USER=nodeo -e POSTGRES_PASSWORD=changeme \
+  -p 5432:5432 postgres:16-alpine
+
+# Backend (terminal 1)
 cd backend && npm install && npm run dev
 
-# Frontend (separate terminal)
+# Frontend (terminal 2)
 cd frontend && npm install && npm run dev
 ```
 
+Set `POSTGRES_HOST=localhost` in `.env` for local dev.
+
 The frontend dev server proxies `/api` requests to `http://localhost:3000`.
+
+### Regenerate API types
+
+After changing `backend/src/openapi.yaml`:
+
+```bash
+cd frontend && npm run api:generate
+```
 
 ## Architecture
 
-- **Backend**: Node.js + Express, PostgreSQL, S3
-- **Frontend**: Vue 3 + PrimeVue (Nginx in production)
-- **Encryption**: AES-256-CTR with per-collection keys (PBKDF2 key derivation)
-- **Docker**: 2 app containers (backend + frontend) + PostgreSQL
+| Layer | Technology |
+|-------|-----------|
+| Backend | Node.js 24 + Express + TypeScript |
+| Frontend | Vue 3 + Vite + PrimeVue + Pinia |
+| Database | PostgreSQL (raw `pg`, SQL migrations) |
+| Storage | AWS S3 / S3-compatible |
+| Encryption | AES-256-CTR + PBKDF2 key derivation |
+| Auth | JWT (stateless, 90-day expiry) |
+| API contract | OpenAPI 3.0 spec → `openapi-typescript` + `openapi-fetch` |
+| Docker | 2 containers (Node backend + Nginx frontend) |
 
 See [MIGRATION_PLAN.md](MIGRATION_PLAN.md) for detailed architecture and roadmap.
+
+## Configuration
+
+All configuration is via `.env` — see [.env.example](.env.example) for all available variables.
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `POSTGRES_HOST` | yes | Database host |
+| `POSTGRES_DB` | yes | Database name |
+| `POSTGRES_USER` | yes | Database user |
+| `POSTGRES_PASSWORD` | yes | Database password |
+| `AUTH_USERNAME` | yes | Login username |
+| `AUTH_PASSWORD_HASH` | yes | Bcrypt hash (escape `$` as `$$`) |
+| `JWT_SECRET` | yes | Random secret for signing tokens |
+| `S3_BUCKET` | yes | S3 bucket name |
+| `S3_REGION` | yes | AWS region |
+| `S3_ACCESS_KEY` | yes | IAM access key |
+| `S3_SECRET_KEY` | yes | IAM secret key |
+| `S3_ENDPOINT` | no | Custom S3 endpoint (MinIO, etc.) |
+| `CORS_ORIGIN` | no | CORS origin (default: `*`) |
+| `BACKEND_PORT` | no | Backend port (default: 3000) |
+| `FRONTEND_PORT` | no | Frontend port (default: 8080) |
+
+## License
+
+MIT

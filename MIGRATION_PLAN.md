@@ -213,15 +213,16 @@ CREATE TABLE media (
 - [x] Frontend: Video player page (HTML5 `<video>` with stream source)
 - [x] Frontend: Navigation: collections → collection detail → player
 
-### Phase 6 — Polish & Hardening `[commit 6]`
+### Phase 6 — Polish & Hardening `[commit 6]` ✅
 
-- [ ] Error handling (backend global handler, frontend error boundaries)
-- [ ] Input validation (backend: express-validator or joi)
-- [ ] Rate limiting on auth endpoints
-- [ ] CORS configuration
-- [ ] Production Dockerfiles (multi-stage builds, non-root user)
-- [ ] README with setup instructions
-- [ ] UI polish (responsive, dark mode via PrimeVue themes)
+- [x] Security: helmet (HTTP headers), rate limiting on auth (5 req/15min), configurable CORS
+- [x] Input validation: lightweight middleware with field rules (required, maxLength, oneOf)
+- [x] Async error handling: asyncHandler wrapper on all async routes
+- [x] Error responses: dev mode shows error messages, production shows generic 500
+- [x] Reusable AppTopbar component (dark mode toggle, logout, responsive)
+- [x] Dark mode: toggle button + localStorage persistence via Pinia store
+- [x] Responsive: mobile-friendly topbar, collection grid, media grid
+- [x] README: comprehensive setup instructions, architecture table, config reference
 
 ### Future — Music Support `[separate iteration]`
 

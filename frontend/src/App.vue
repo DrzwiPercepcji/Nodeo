@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useThemeStore } from '@/stores/theme'
 import Toast from 'primevue/toast'
 
 const auth = useAuthStore()
+useThemeStore()
 
 onMounted(() => {
   auth.fetchMe()
@@ -41,5 +43,6 @@ body {
   min-height: 100vh;
   background: var(--p-surface-ground);
   color: var(--p-text-color);
+  transition: background-color 0.2s, color 0.2s;
 }
 </style>

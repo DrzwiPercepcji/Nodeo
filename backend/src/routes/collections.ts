@@ -1,13 +1,15 @@
 import { Router } from 'express';
 import pool from '../db/pool.js';
 import { requireAuth } from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
+import { asyncHandler } from '../middleware/asyncHandler.js';
 import { createCollectionKeys, unwrapDek } from '../services/encryption.js';
 import { cacheDek, getCachedDek, evictDek } from '../services/keyCache.js';
 
 const router = Router();
 router.use(requireAuth);
 
-router.get('/', async (_req, res) => {
+router.get('/', asyncHandler(async (_req, res) => {
   const { rows } = await pool.query(
     `SELECT id, name, description, is_encrypted, cover_url, created_at, updated_at
      FROM collections ORDER BY created_at DESC`,
@@ -17,19 +19,18 @@ router.get('/', async (_req, res) => {
     is_unlocked: r.is_encrypted ? getCachedDek(r.id) !== null : true,
   }));
   res.json(collections);
-});
+}));
 
-router.post('/', async (req, res) => {
+router.post('/', validate([
+  { field: 'name', required: true, maxLength: 200 },
+  { field: 'description', maxLength: 2000 },
+  { field: 'passphrase', maxLength: 500 },
+]), asyncHandler(async (req, res) => {
   const { name, description, passphrase } = req.body as {
-    name?: string;
+    name: string;
     description?: string;
     passphrase?: string;
   };
-
-  if (!name || !name.trim()) {
-    res.status(400).json({ error: 'Name is required' });
-    return;
-  }
 
   const isEncrypted = !!passphrase;
   let encryptedDek: Buffer | null = null;
@@ -62,9 +63,9 @@ router.post('/', async (req, res) => {
   }
 
   res.status(201).json({ ...collection, is_unlocked: true });
-});
+}));
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', asyncHandler(async (req, res) => {
   const { rows } = await pool.query(
     `SELECT id, name, description, is_encrypted, cover_url, created_at, updated_at
      FROM collections WHERE id = $1`,
@@ -81,9 +82,12 @@ router.get('/:id', async (req, res) => {
     ...collection,
     is_unlocked: collection.is_encrypted ? getCachedDek(collection.id) !== null : true,
   });
-});
+}));
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', validate([
+  { field: 'name', maxLength: 200 },
+  { field: 'description', maxLength: 2000 },
+]), asyncHandler(async (req, res) => {
   const { name, description } = req.body as { name?: string; description?: string };
 
   const updates: string[] = [];
@@ -119,25 +123,22 @@ router.put('/:id', async (req, res) => {
   }
 
   res.json(rows[0]);
-});
+}));
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', asyncHandler(async (req, res) => {
   const { rowCount } = await pool.query('DELETE FROM collections WHERE id = $1', [req.params.id]);
   if (rowCount === 0) {
     res.status(404).json({ error: 'Collection not found' });
     return;
   }
-  evictDek(req.params.id);
+  evictDek(req.params.id as string);
   res.status(204).end();
-});
+}));
 
-router.post('/:id/unlock', async (req, res) => {
-  const { passphrase } = req.body as { passphrase?: string };
-
-  if (!passphrase) {
-    res.status(400).json({ error: 'Passphrase is required' });
-    return;
-  }
+router.post('/:id/unlock', validate([
+  { field: 'passphrase', required: true, maxLength: 500 },
+]), asyncHandler(async (req, res) => {
+  const { passphrase } = req.body as { passphrase: string };
 
   const { rows } = await pool.query(
     'SELECT encrypted_dek, dek_salt, dek_iv, verify_token FROM collections WHERE id = $1 AND is_encrypted = true',
@@ -157,8 +158,8 @@ router.post('/:id/unlock', async (req, res) => {
     return;
   }
 
-  cacheDek(req.params.id, dek);
+  cacheDek(req.params.id as string, dek);
   res.json({ success: true });
-});
+}));
 
 export default router;
