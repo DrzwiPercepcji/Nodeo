@@ -55,7 +55,7 @@ async function handleLogin() {
         <div class="field">
           <label for="password">Password</label>
           <Password
-            id="password"
+            input-id="password"
             v-model="password"
             placeholder="Enter password"
             :feedback="false"
