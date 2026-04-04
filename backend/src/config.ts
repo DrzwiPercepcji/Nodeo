@@ -17,29 +17,6 @@ function parsePositiveInt(raw: string | undefined, fallback: number): number {
 const defaultStreamCacheTtl = 30 * 60;
 const defaultStreamCacheMaxRange = 8 * 1024 * 1024;
 
-/**
- * `REDIS_URL` as-is, or with DB from `REDIS_DB` (non-negative int) as path `/${db}` — overrides DB in URL when set.
- * You can also use only `redis://host:6379/1` without `REDIS_DB`.
- */
-function streamCacheRedisUrl(): string | undefined {
-  const raw = process.env.REDIS_URL?.trim();
-  if (!raw) return undefined;
-
-  const dbRaw = process.env.REDIS_DB?.trim();
-  if (dbRaw === undefined || dbRaw === '') return raw;
-
-  const dbNum = parseInt(dbRaw, 10);
-  if (!Number.isFinite(dbNum) || dbNum < 0) return raw;
-
-  try {
-    const u = new URL(raw);
-    u.pathname = `/${dbNum}`;
-    return u.href;
-  } catch {
-    return raw;
-  }
-}
-
 const config = {
   port: parseInt(process.env.BACKEND_PORT || '3000', 10),
   nodeEnv: process.env.NODE_ENV || 'development',

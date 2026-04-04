@@ -91,3 +91,7 @@ Terraform:
 cd infra
 terraform destroy -var="bucket_name=your-bucket-name"
 ```
+
+## Optional: Redis for stream caching
+
+Nodeo does **not** require Redis for core operation. If you enable **`REDIS_URL`** (see `.env.example`), provision **ElastiCache / MemoryDB / self-hosted Redis** yourself and point the URL at it (TLS and ACL password recommended). This repo’s AWS templates only cover **S3**; cache infrastructure is separate.

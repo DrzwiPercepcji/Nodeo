@@ -1,6 +1,6 @@
 # Docker Compose
 
-The stack is split across several Compose files. The **base** file pulls **pre-built images** from GitHub Container Registry (`latest`). **Local** overlay adds PostgreSQL and **`build:`** so you develop from source without changing the base file.
+The stack is split across several Compose files. The **base** file pulls **pre-built images** from GitHub Container Registry (`latest`). **Local** overlay adds PostgreSQL, **Redis** (for optional stream caching), and **`build:`** so you develop from source without changing the base file.
 
 ## Images and tags
 
@@ -31,6 +31,16 @@ Private packages: run `docker login ghcr.io` before `docker compose pull` / `up`
 | `docker-compose.e2e.yml` | **MinIO** + one-shot **minio-init** (create bucket). Extends **backend** with `depends_on: minio-init` (wait for successful exit). Intended together with **local** so Postgres and S3 are both present. |
 
 Compose **merges** `backend.depends_on` across files: with base + local + e2e, the backend waits for **Postgres (healthy)** and **minio-init (completed)**.
+
+## Backend container: temp volume and user
+
+The **backend** image runs an **entrypoint** (`docker-entrypoint.sh`) as root long enough to `chown` **`NODEO_TEMP_DIR`** (default in Compose: `/data/nodeo-tmp`) to the unprivileged **`node`** user, then starts the app as **`node`**. That way the named volume for uploads/transcode scratch is writable. To clear temp files: remove paths under that directory or recreate the volume (`docker volume rm …` when safe).
+
+## Optional Redis stream cache
+
+- Caching is **off** unless **`REDIS_URL`** is set in `.env` (the Redis service in `docker-compose.local.yml` does not enable it by itself).
+- Cached values are **plaintext media bytes** for a given `(mediaId, byte range)` — treat Redis like sensitive memory; use **password/TLS** URLs in production if needed.
+- **`REDIS_DB`** or a path in the URL (`redis://host:6379/1`) selects the logical database. See `.env.example`.
 
 ## Full stack locally (app + Postgres, build from source)
 

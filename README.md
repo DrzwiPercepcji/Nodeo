@@ -7,11 +7,14 @@ Private self-hosted media streaming service with per-collection encryption and S
 - **Single-user auth** — JWT with 90-day sessions, credentials from env
 - **Collections** — organize media into folders, each optionally encrypted
 - **Per-collection encryption** — AES-256-CTR with PBKDF2-derived keys; AWS never sees your keys
-- **Video upload** — transcoding to multiple profiles (480p/720p/1080p/1080p60) via ffmpeg
-- **Encrypted streaming** — range-request support with seekable CTR decryption
+- **Video & audio** — upload with ffmpeg transcoding (video profiles 480p–1080p60; audio MP3/AAC profiles)
+- **Metadata** — ID3 / container tags from the **source file** (ffprobe) stored as `media.metadata`; shown in the UI (grid, player, audio playlist)
+- **Audio playlist** — per-collection queue with shuffle and repeat (mobile-friendly)
+- **Encrypted streaming** — HTTP range requests with seekable CTR decryption
+- **Optional Redis stream cache** — caches plaintext byte ranges for repeat range requests (off unless `REDIS_URL` is set); see [.env.example](.env.example) and [docs/docker.md](docs/docker.md)
 - **S3 storage** — any S3-compatible backend (AWS, MinIO, etc.)
 - **Dark mode** — toggle with persistent preference
-- **Docker Compose** — base file pulls **GHCR** images (`latest`); `docker-compose.local.yml` adds PostgreSQL and **builds** backend/frontend from source (see [docs/docker.md](docs/docker.md))
+- **Docker Compose** — base file pulls **GHCR** images (`latest`); `docker-compose.local.yml` adds PostgreSQL, **Redis**, and **builds** backend/frontend from source; backend temp dir on a **named volume** (see [docs/docker.md](docs/docker.md))
 
 ## Quick Start
 
@@ -103,35 +106,44 @@ On GitHub, workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs 
 | Frontend | Vue 3 + Vite + PrimeVue + Pinia |
 | Database | PostgreSQL (raw `pg`, SQL migrations) |
 | Storage | AWS S3 / S3-compatible |
+| Cache (optional) | Redis 7 (`redis` npm client v5) — media stream range cache only |
 | Encryption | AES-256-CTR + PBKDF2 key derivation |
 | Auth | JWT (stateless, 90-day expiry) |
 | API contract | OpenAPI 3.0 spec → `openapi-typescript` + `openapi-fetch` |
-| Docker | 2 containers (Node backend + Nginx frontend) |
+| Docker | Base: backend + frontend images; local overlay adds Postgres + Redis + `build:`; backend uses volume for `NODEO_TEMP_DIR` |
 
-See [MIGRATION_PLAN.md](MIGRATION_PLAN.md) for detailed architecture and roadmap.
+See [docs/migration-history.md](docs/migration-history.md) for the completed rewrite timeline, SQL migrations, and design rationale (archived from the old migration plan).
+
+## Documentation
+
+| Document | Contents |
+|----------|----------|
+| [docs/docker.md](docs/docker.md) | Compose files, GHCR tags, Postgres/Redis, temp volume, optional stream cache, E2E stack commands |
+| [docs/e2e.md](docs/e2e.md) | Playwright + Cucumber setup, fixtures, local runs |
+| [docs/infra.md](docs/infra.md) | AWS S3 / IAM / lifecycle (Terraform & CloudFormation) |
+| [docs/migration-history.md](docs/migration-history.md) | Completed rewrite phases, DB migration list, encryption & trade-offs (archive) |
+| [.env.example](.env.example) | All environment variables with comments |
 
 ## Configuration
 
-All configuration is via `.env` — see [.env.example](.env.example) for all available variables.
+All configuration is via `.env` — see [.env.example](.env.example) for every variable and inline comments.
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `POSTGRES_HOST` | yes | Database host |
-| `POSTGRES_DB` | yes | Database name |
-| `POSTGRES_USER` | yes | Database user |
-| `POSTGRES_PASSWORD` | yes | Database password |
-| `AUTH_USERNAME` | yes | Login username |
-| `AUTH_PASSWORD_HASH` | yes | Bcrypt hash (escape `$` as `$$`) |
-| `JWT_SECRET` | yes | Random secret for signing tokens |
-| `S3_BUCKET` | yes | S3 bucket name |
-| `S3_REGION` | yes | AWS region |
-| `S3_ACCESS_KEY` | yes | IAM access key |
-| `S3_SECRET_KEY` | yes | IAM secret key |
-| `S3_ENDPOINT` | no | Custom S3 endpoint (MinIO, etc.) |
-| `S3_STORAGE_CLASS` | no | e.g. `INTELLIGENT_TIERING` on AWS; omit for MinIO |
-| `CORS_ORIGIN` | no | CORS origin (default: `*`) |
-| `BACKEND_PORT` | no | Backend port (default: 3000) |
-| `FRONTEND_PORT` | no | Frontend port (default: 8080) |
+**Required (core):** `POSTGRES_*`, `AUTH_USERNAME`, `AUTH_PASSWORD_HASH`, `JWT_SECRET`, `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`.
+
+**Common optional:**
+
+| Variable | Description |
+|----------|-------------|
+| `S3_ENDPOINT` | S3-compatible API URL (e.g. MinIO) |
+| `S3_STORAGE_CLASS` | AWS storage class; omit for MinIO |
+| `CORS_ORIGIN` | Browser origin(s); default `*` |
+| `BACKEND_PORT` / `FRONTEND_PORT` | Published ports (defaults 3000 / 8080) |
+| `NODEO_TEMP_DIR` | Upload/transcode scratch (Compose sets `/data/nodeo-tmp` + volume; see [docs/docker.md](docs/docker.md)) |
+| `REDIS_URL` | If set, enables **stream range cache** (plaintext in Redis; use TLS/password URL in production) |
+| `REDIS_DB` | Logical Redis DB index (or use `redis://host:6379/1` in `REDIS_URL`) |
+| `STREAM_CACHE_TTL_SECONDS` | Cache TTL (default 1800) |
+| `STREAM_CACHE_MAX_RANGE_BYTES` | Max cached range size per key (default 8 MiB) |
+| `POSTGRES_EXPOSE_PORT` / `REDIS_EXPOSE_PORT` | Host ports when using `docker-compose.local.yml` |
 
 ## License
 

@@ -14,7 +14,7 @@ The same triple is what the **GitHub Actions** `e2e` job runs. That job writes a
 
 - **Browser automation:** Playwright drives Chromium against the real UI.
 - **Scenarios:** Gherkin feature files under `e2e/features/` (`*.feature`). Step implementations are TypeScript in `e2e/steps/`; shared setup lives in `e2e/support/` (`world.ts`, `hooks.ts`).
-- **Application under test:** Full stack from Compose: PostgreSQL (`docker-compose.local.yml`), backend API, frontend (nginx + static SPA), MinIO (`docker-compose.e2e.yml`). The frontend talks to the API via `/api` (nginx proxy to the backend container).
+- **Application under test:** Full stack from Compose: PostgreSQL and Redis (`docker-compose.local.yml`), backend API, frontend (nginx + static SPA), MinIO (`docker-compose.e2e.yml`). The frontend talks to the API via `/api` (nginx proxy to the backend container). **Stream cache** stays disabled in CI unless the workflow sets `REDIS_URL` (default: unset).
 
 ## Repository layout (E2E)
 
