@@ -26,8 +26,8 @@ Private packages: run `docker login ghcr.io` before `docker compose pull` / `up`
 
 | File | Contents |
 |------|----------|
-| `docker-compose.yml` | **Backend** and **frontend** only, **`image:`** to GHCR `latest` (defaults above). No database; `POSTGRES_HOST` comes from `.env`. |
-| `docker-compose.local.yml` | **PostgreSQL 16** (Alpine), volume `pgdata`, optional host port `POSTGRES_EXPOSE_PORT`. **`build: ./backend`** and **`build: ./frontend`** so merged services build from this repo and still tag with the same image names. Extends **backend** with `depends_on: postgres` (wait for health). |
+| `docker-compose.yml` | **Backend** and **frontend** only, **`image:`** to GHCR `latest` (defaults above). No database; `POSTGRES_HOST` comes from `.env`. **Backend** uses named volume **`nodeo_backend_tmp`** → `/data/nodeo-tmp` and sets **`NODEO_TEMP_DIR`** so uploads/transcode scratch can be wiped with `docker volume rm …` or by clearing the mount. |
+| `docker-compose.local.yml` | **PostgreSQL 16** (Alpine), volume `pgdata`, optional host port `POSTGRES_EXPOSE_PORT`. **Redis 7** (for optional stream cache; set **`REDIS_URL=redis://redis:6379`** in `.env` to enable — omit **`REDIS_URL`** to leave caching off). Optional logical DB: **`redis://…/1`** or **`REDIS_DB=1`**. **`build: ./backend`** and **`build: ./frontend`**. Extends **backend** with `depends_on: postgres` (wait for health). |
 | `docker-compose.e2e.yml` | **MinIO** + one-shot **minio-init** (create bucket). Extends **backend** with `depends_on: minio-init` (wait for successful exit). Intended together with **local** so Postgres and S3 are both present. |
 
 Compose **merges** `backend.depends_on` across files: with base + local + e2e, the backend waits for **Postgres (healthy)** and **minio-init (completed)**.

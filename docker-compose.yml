@@ -11,6 +11,10 @@ services:
     container_name: nodeo-backend
     restart: unless-stopped
     env_file: .env
+    environment:
+      NODEO_TEMP_DIR: /data/nodeo-tmp
+    volumes:
+      - nodeo_backend_tmp:/data/nodeo-tmp
     ports:
       - "${BACKEND_PORT:-3000}:3000"
 
@@ -22,3 +26,6 @@ services:
       - "${FRONTEND_PORT:-8080}:80"
     depends_on:
       - backend
+
+volumes:
+  nodeo_backend_tmp:

@@ -12,6 +12,7 @@ import migrate from './db/migrate.js';
 import authRoutes from './routes/auth.js';
 import collectionsRoutes from './routes/collections.js';
 import mediaRoutes from './routes/media.js';
+import { disconnectStreamCache } from './services/streamCache.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -58,6 +59,14 @@ async function start(): Promise<void> {
     console.log(`Nodeo backend listening on port ${config.port} [${config.nodeEnv}]`);
   });
 }
+
+function shutdownSignal(sig: string): void {
+  process.on(sig, () => {
+    void disconnectStreamCache().finally(() => process.exit(0));
+  });
+}
+shutdownSignal('SIGTERM');
+shutdownSignal('SIGINT');
 
 start().catch((err: Error) => {
   console.error('Failed to start:', err.message);

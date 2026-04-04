@@ -1,4 +1,7 @@
 import 'dotenv/config';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { resolveStreamCacheRedisUrl } from './config/streamCacheRedisUrl.js';
 
 function required(name: string): string {
   const val = process.env[name];
@@ -6,10 +9,64 @@ function required(name: string): string {
   return val;
 }
 
+function parsePositiveInt(raw: string | undefined, fallback: number): number {
+  const n = parseInt(raw ?? '', 10);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
+const defaultStreamCacheTtl = 30 * 60;
+const defaultStreamCacheMaxRange = 8 * 1024 * 1024;
+
+/**
+ * `REDIS_URL` as-is, or with DB from `REDIS_DB` (non-negative int) as path `/${db}` — overrides DB in URL when set.
+ * You can also use only `redis://host:6379/1` without `REDIS_DB`.
+ */
+function streamCacheRedisUrl(): string | undefined {
+  const raw = process.env.REDIS_URL?.trim();
+  if (!raw) return undefined;
+
+  const dbRaw = process.env.REDIS_DB?.trim();
+  if (dbRaw === undefined || dbRaw === '') return raw;
+
+  const dbNum = parseInt(dbRaw, 10);
+  if (!Number.isFinite(dbNum) || dbNum < 0) return raw;
+
+  try {
+    const u = new URL(raw);
+    u.pathname = `/${dbNum}`;
+    return u.href;
+  } catch {
+    return raw;
+  }
+}
+
 const config = {
   port: parseInt(process.env.BACKEND_PORT || '3000', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
   corsOrigin: process.env.CORS_ORIGIN || '*',
+
+  /** Upload / transcode scratch space (Docker: mount a volume here, e.g. /data/nodeo-tmp). */
+  tempDir: process.env.NODEO_TEMP_DIR?.trim() || join(tmpdir(), 'nodeo-uploads'),
+
+  /**
+   * Optional Redis cache for media stream byte ranges (plaintext after decrypt).
+   * If `redisUrl` is unset or empty, caching is disabled.
+   * URL from `REDIS_URL` + optional `REDIS_DB` — see `config/streamCacheRedisUrl.ts`.
+   */
+  streamCache: {
+    redisUrl: resolveStreamCacheRedisUrl(),
+    ttlSeconds: Math.max(
+      60,
+      parsePositiveInt(process.env.STREAM_CACHE_TTL_SECONDS, defaultStreamCacheTtl),
+    ),
+    maxRangeBytes: Math.min(
+      64 * 1024 * 1024,
+      Math.max(
+        256 * 1024,
+        parsePositiveInt(process.env.STREAM_CACHE_MAX_RANGE_BYTES, defaultStreamCacheMaxRange),
+      ),
+    ),
+  },
 
   db: {
     host: required('POSTGRES_HOST'),
@@ -23,7 +80,7 @@ const config = {
     username: required('AUTH_USERNAME'),
     passwordHash: required('AUTH_PASSWORD_HASH'),
     jwtSecret: required('JWT_SECRET'),
-    jwtExpiresIn: '90d',
+    jwtExpiresIn: '90d' as const,
   },
 
   s3: {
@@ -35,6 +92,6 @@ const config = {
     /** e.g. INTELLIGENT_TIERING on AWS; leave unset for MinIO (Standard). */
     storageClass: process.env.S3_STORAGE_CLASS?.trim() || undefined,
   },
-} as const;
+};
 
 export default config;

@@ -1,8 +1,7 @@
-import { join } from 'node:path';
-import { tmpdir } from 'node:os';
 import { mkdir, unlink } from 'node:fs/promises';
+import config from '../../config.js';
 
-export const TEMP_DIR = join(tmpdir(), 'nodeo-uploads');
+export const TEMP_DIR = config.tempDir;
 
 export async function ensureTempDir(): Promise<void> {
   await mkdir(TEMP_DIR, { recursive: true });

@@ -148,6 +148,7 @@ router.get('/media/:id/stream', asyncHandler(async (req: Request, res: Response)
   }
 
   await streamMediaToResponse(req, res, {
+    mediaId: req.params.id as string,
     contentType,
     totalSize: Number(media.file_size_bytes),
     s3Key: media.s3_key,

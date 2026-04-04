@@ -12,7 +12,7 @@ RUN npm run build
 
 FROM node:24-alpine
 
-RUN apk add --no-cache ffmpeg
+RUN apk add --no-cache ffmpeg su-exec
 
 WORKDIR /app
 
@@ -22,9 +22,10 @@ RUN npm ci --omit=dev
 COPY --from=build /app/dist/ dist/
 COPY src/openapi.yaml dist/
 COPY src/db/migrations/ dist/db/migrations/
-
-USER node
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 3000
 
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["node", "dist/index.js"]
