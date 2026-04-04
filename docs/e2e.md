@@ -8,7 +8,7 @@ E2E needs **Postgres** and **MinIO** as well as backend + frontend. Use three Co
 docker compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.e2e.yml up -d --build
 ```
 
-The same triple is what the **GitHub Actions** `e2e` job runs.
+The same triple is what the **GitHub Actions** `e2e` job runs. That job writes a root `.env` with a generated bcrypt hash: each `$` is doubled (`$$`) so Docker Compose does not treat fragments like `$lTy81` inside the hash as separate variables (same rule as manual `.env`; see `.env.example`).
 
 ## What runs
 

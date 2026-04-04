@@ -12,7 +12,7 @@ Given('I am logged in as {string} with password {string}', async function (this:
   await this.page.locator('#username').fill(user)
   await this.page.locator('#password').fill(password)
   await this.page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(this.page.getByRole('heading', { name: 'Collections' })).toBeVisible({ timeout: 30_000 })
+  await expect(this.page.getByRole('heading', { name: 'Collections' })).toBeVisible()
 })
 
 When('I click the log out button', async function (this: NodeoWorld) {
@@ -25,14 +25,9 @@ Then('I see the login page', async function (this: NodeoWorld) {
 })
 
 Then('I see the collections list', async function (this: NodeoWorld) {
-  // Playwright expect defaults to 5s; lazy route + API after login often exceeds that on CI.
-  const navTimeout = 30_000
-  await this.page.waitForURL((url) => url.pathname === '/', { timeout: navTimeout })
-  await expect(this.page.getByRole('heading', { level: 1, name: 'Collections' })).toBeVisible({
-    timeout: navTimeout,
-  })
+  await expect(this.page.getByRole('heading', { name: 'Collections' })).toBeVisible()
 })
 
 Then('I see a login error message', async function (this: NodeoWorld) {
-  await expect(this.page.getByText('Login failed')).toBeVisible({ timeout: 15_000 })
+  await expect(this.page.getByText('Login failed')).toBeVisible()
 })

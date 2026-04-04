@@ -77,6 +77,8 @@ jobs:
         run: |
           set -e
           HASH="$(cd backend && node -e "console.log(require('bcryptjs').hashSync('e2e-secret', 12))")"
+          # Compose treats $ in .env as interpolation (bcrypt hashes look like $2b$12$… → bogus vars e.g. $lTy81).
+          HASH_FOR_COMPOSE="$(printf '%s' "$HASH" | sed 's/\$/$$/g')"
           {
             echo "POSTGRES_HOST=postgres"
             echo "POSTGRES_PORT=5432"
@@ -84,7 +86,7 @@ jobs:
             echo "POSTGRES_USER=nodeo"
             echo "POSTGRES_PASSWORD=e2e-postgres-secret"
             echo "AUTH_USERNAME=e2e-admin"
-            echo "AUTH_PASSWORD_HASH=${HASH}"
+            echo "AUTH_PASSWORD_HASH=${HASH_FOR_COMPOSE}"
             echo "JWT_SECRET=e2e-ci-jwt-secret-at-least-32-characters-long"
             echo "NODE_ENV=production"
             echo "BACKEND_PORT=3000"
