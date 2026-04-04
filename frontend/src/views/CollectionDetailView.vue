@@ -11,6 +11,7 @@ import ProgressSpinner from 'primevue/progressspinner'
 import Tag from 'primevue/tag'
 import UploadDialog from '@/components/UploadDialog.vue'
 import type { components } from '@/api/schema'
+import { mediaMetadataSubtitle } from '@/utils/mediaMetadataDisplay'
 
 type Media = components['schemas']['Media']
 
@@ -316,6 +317,12 @@ function openMedia(media: Media) {
 
           <div class="media-info">
             <h4>{{ media.title }}</h4>
+            <p
+              v-if="mediaMetadataSubtitle(media.metadata)"
+              class="media-tags"
+            >
+              {{ mediaMetadataSubtitle(media.metadata) }}
+            </p>
             <div class="media-meta">
               <Tag
                 v-if="media.status === 'processing'"
@@ -496,6 +503,16 @@ function openMedia(media: Media) {
   overflow: hidden;
   text-overflow: ellipsis;
   margin-bottom: 0.25rem;
+}
+
+.media-tags {
+  font-size: 0.72rem;
+  color: var(--p-text-muted-color);
+  margin: 0 0 0.25rem;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .media-meta { display: flex; align-items: center; gap: 0.5rem; }

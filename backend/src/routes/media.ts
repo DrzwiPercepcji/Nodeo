@@ -101,7 +101,7 @@ router.get('/collections/:collectionId/media', asyncHandler(async (req, res) => 
   const collectionId = req.params.collectionId as string;
   const { rows } = await pool.query(
     `SELECT m.id, m.title, m.description, m.media_type, m.duration_sec, m.file_size_bytes,
-            m.profile, m.mime_type, m.status, m.created_at,
+            m.profile, m.mime_type, m.status, m.created_at, m.metadata,
             COALESCE(jsonb_array_length(m.thumbnails), 0)::int AS thumb_frame_count
      FROM media m WHERE m.collection_id = $1 ORDER BY m.created_at DESC`,
     [collectionId],
@@ -112,7 +112,7 @@ router.get('/collections/:collectionId/media', asyncHandler(async (req, res) => 
 router.get('/media/:id', asyncHandler(async (req, res) => {
   const { rows } = await pool.query(
     `SELECT m.id, m.collection_id, m.title, m.description, m.media_type, m.duration_sec, m.file_size_bytes,
-            m.profile, m.mime_type, m.status, m.created_at, m.s3_key, m.encryption_iv, m.original_name,
+            m.profile, m.mime_type, m.status, m.created_at, m.s3_key, m.encryption_iv, m.original_name, m.metadata,
             c.is_encrypted,
             COALESCE(jsonb_array_length(m.thumbnails), 0)::int AS thumb_frame_count
      FROM media m JOIN collections c ON m.collection_id = c.id WHERE m.id = $1`,

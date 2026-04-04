@@ -247,7 +247,7 @@ CREATE TABLE media (
 - [x] **Refactor toward classes / service modules** — `backend/src/services/`: `collectionsService.ts` (list/create/get/update/delete/unlock + DEK cache handoff), `mediaUploadPipeline.ts`, `mediaStreaming.ts`, `mediaThumbnailServe.ts`, plus `encryption`, `s3`, `transcoding`, `keyCache`, `processingProgress`. `routes/collections.ts` and `routes/media.ts` are thin HTTP + validation.
 - [x] **Collection as playlist** — Implemented: `PlaylistView.vue` at `/collections/:id/playlist` — ordered audio queue, auto-advance on track end, shuffle, repeat modes (off / all / one), large transport controls and queue list for mobile / in-car use.
 - [x] **Docker images via GHA** — Push to **GHCR** on `master`/`main` after E2E: `…-backend:latest-dev`, `…-frontend:latest-dev` (`linux/amd64`, OCI labels). **Promote** workflow (manual): `latest-dev` → `latest` without rebuild. `docker-compose.yml` defaults to `ghcr.io/drzwipercepcji/nodeo-{backend,frontend}:latest`; `docker-compose.local.yml` adds `build:` for local/CI from source. Semver release tags optional.
-- [ ] Audio cover art extraction from ID3 tags
+- [x] **Media tags (ID3 / container)** — ffprobe on the **uploaded source file** (before transcoding), normalized fields in `media.metadata` JSONB; UI: subtitle on collection grid + playlist, full list on `PlayerView`. Video: same pipeline + `encoder` / `creation_time` when present.
 
 ---
 

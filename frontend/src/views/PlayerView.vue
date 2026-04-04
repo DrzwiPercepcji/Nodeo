@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { useMediaStore } from '@/stores/media'
 import AppTopbar from '@/components/AppTopbar.vue'
 import type { components } from '@/api/schema'
+import { mediaMetadataDetailRows } from '@/utils/mediaMetadataDisplay'
 
 type Media = components['schemas']['Media']
 
@@ -13,6 +14,8 @@ const mediaStore = useMediaStore()
 const mediaId = route.params.id as string
 const media = ref<Media | null>(null)
 const isAudio = computed(() => media.value?.media_type === 'audio')
+
+const metadataRows = computed(() => mediaMetadataDetailRows(media.value?.metadata))
 
 onMounted(async () => {
   media.value = await mediaStore.fetchSingle(mediaId)
@@ -74,6 +77,18 @@ function formatSize(bytes: number | null | undefined): string {
             <span v-if="media.file_size_bytes">{{ formatSize(media.file_size_bytes) }}</span>
             <span>{{ media.profile }}</span>
           </div>
+          <dl
+            v-if="metadataRows.length"
+            class="tag-block"
+          >
+            <template
+              v-for="row in metadataRows"
+              :key="row.label"
+            >
+              <dt>{{ row.label }}</dt>
+              <dd>{{ row.value }}</dd>
+            </template>
+          </dl>
         </div>
       </template>
 
@@ -96,6 +111,18 @@ function formatSize(bytes: number | null | undefined): string {
             <span v-if="media.file_size_bytes">{{ formatSize(media.file_size_bytes) }}</span>
             <span>{{ media.profile }}</span>
           </div>
+          <dl
+            v-if="metadataRows.length"
+            class="tag-block tag-block-audio"
+          >
+            <template
+              v-for="row in metadataRows"
+              :key="row.label"
+            >
+              <dt>{{ row.label }}</dt>
+              <dd>{{ row.value }}</dd>
+            </template>
+          </dl>
         </div>
 
         <audio
@@ -156,6 +183,26 @@ function formatSize(bytes: number | null | undefined): string {
   color: rgba(255, 255, 255, 0.5);
 }
 
+.tag-block {
+  margin-top: 1.25rem;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.35rem 1rem;
+  font-size: 0.85rem;
+  max-width: 36rem;
+}
+
+.tag-block dt {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 500;
+}
+
+.tag-block dd {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.85);
+}
+
 /* Audio player styles */
 .audio-content {
   max-width: 600px;
@@ -204,6 +251,19 @@ function formatSize(bytes: number | null | undefined): string {
 .audio-info .meta {
   justify-content: center;
   color: var(--p-text-muted-color);
+}
+
+.tag-block-audio {
+  text-align: left;
+  margin-inline: auto;
+}
+
+.tag-block-audio dt {
+  color: var(--p-text-muted-color);
+}
+
+.tag-block-audio dd {
+  color: var(--p-text-color);
 }
 
 .audio-player {

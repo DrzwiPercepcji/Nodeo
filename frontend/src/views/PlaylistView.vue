@@ -7,6 +7,7 @@ import Button from 'primevue/button'
 import AppTopbar from '@/components/AppTopbar.vue'
 import ProgressSpinner from 'primevue/progressspinner'
 import type { components } from '@/api/schema'
+import { mediaMetadataSubtitle } from '@/utils/mediaMetadataDisplay'
 
 type Media = components['schemas']['Media']
 
@@ -39,6 +40,8 @@ const sortedAudios = computed(() =>
 const queue = computed(() => shuffledOrder.value ?? sortedAudios.value)
 
 const currentTrack = computed(() => queue.value[currentIndex.value] ?? null)
+
+const currentTrackSubtitle = computed(() => mediaMetadataSubtitle(currentTrack.value?.metadata))
 
 function shuffleArray<T>(items: T[]): T[] {
   const a = [...items]
@@ -208,6 +211,12 @@ onMounted(async () => {
             {{ currentTrack?.title ?? '—' }}
           </h1>
           <p
+            v-if="currentTrackSubtitle"
+            class="track-tags"
+          >
+            {{ currentTrackSubtitle }}
+          </p>
+          <p
             v-if="currentTrack?.description"
             class="track-desc"
           >
@@ -299,7 +308,13 @@ onMounted(async () => {
                 @click="jumpTo(i)"
               >
                 <span class="qi-idx">{{ i + 1 }}</span>
-                <span class="qi-title">{{ track.title }}</span>
+                <span class="qi-main">
+                  <span class="qi-title">{{ track.title }}</span>
+                  <span
+                    v-if="mediaMetadataSubtitle(track.metadata)"
+                    class="qi-sub"
+                  >{{ mediaMetadataSubtitle(track.metadata) }}</span>
+                </span>
                 <span
                   v-if="track.duration_sec != null"
                   class="qi-dur"
@@ -376,6 +391,13 @@ onMounted(async () => {
   line-height: 1.3;
   margin-bottom: 0.35rem;
   color: var(--p-text-color);
+}
+
+.track-tags {
+  font-size: 0.9rem;
+  color: var(--p-text-muted-color);
+  margin: 0 0 0.35rem;
+  line-height: 1.35;
 }
 
 .track-desc {
@@ -492,13 +514,31 @@ onMounted(async () => {
   min-width: 1.5rem;
 }
 
-.qi-title {
+.qi-main {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  overflow: hidden;
+}
+
+.qi-title {
+  width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-weight: 500;
+}
+
+.qi-sub {
+  width: 100%;
+  font-size: 0.75rem;
+  color: var(--p-text-muted-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .qi-dur {

@@ -235,6 +235,20 @@ export interface components {
         UnlockResponse: {
             success: boolean;
         };
+        /** @description Normalized tags extracted from the uploaded file (ffprobe), before transcoding */
+        MediaMetadata: {
+            title?: string | null;
+            artist?: string | null;
+            album?: string | null;
+            album_artist?: string | null;
+            genre?: string | null;
+            year?: string | null;
+            track?: string | null;
+            composer?: string | null;
+            comment?: string | null;
+            encoder?: string | null;
+            creation_time?: string | null;
+        };
         /** @description Live job progress while status is processing (in-memory on the backend) */
         MediaProcessingProgress: {
             /** @enum {string} */
@@ -265,6 +279,8 @@ export interface components {
             created_at: string;
             /** @description Number of video preview frames (0 for audio or processing) */
             thumb_frame_count?: number;
+            /** @description ID3 / container tags from the original upload when ffprobe could read them */
+            metadata?: components["schemas"]["MediaMetadata"] | null;
             /** @description Only while status is processing; null if the server restarted mid-job */
             progress?: components["schemas"]["MediaProcessingProgress"] | null;
         };

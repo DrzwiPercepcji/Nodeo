@@ -119,6 +119,44 @@ components:
         success:
           type: boolean
 
+    MediaMetadata:
+      type: object
+      description: Normalized tags extracted from the uploaded file (ffprobe), before transcoding
+      properties:
+        title:
+          type: string
+          nullable: true
+        artist:
+          type: string
+          nullable: true
+        album:
+          type: string
+          nullable: true
+        album_artist:
+          type: string
+          nullable: true
+        genre:
+          type: string
+          nullable: true
+        year:
+          type: string
+          nullable: true
+        track:
+          type: string
+          nullable: true
+        composer:
+          type: string
+          nullable: true
+        comment:
+          type: string
+          nullable: true
+        encoder:
+          type: string
+          nullable: true
+        creation_time:
+          type: string
+          nullable: true
+
     MediaProcessingProgress:
       type: object
       required: [stage, overall_percent]
@@ -179,6 +217,11 @@ components:
           type: integer
           description: Number of video preview frames (0 for audio or processing)
           minimum: 0
+        metadata:
+          allOf:
+            - $ref: '#/components/schemas/MediaMetadata'
+          nullable: true
+          description: ID3 / container tags from the original upload when ffprobe could read them
         progress:
           allOf:
             - $ref: '#/components/schemas/MediaProcessingProgress'

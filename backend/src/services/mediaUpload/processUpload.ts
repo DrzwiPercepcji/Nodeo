@@ -10,6 +10,7 @@ import { P_ENCRYPT, P_MAIN, P_THUMB_UP } from './progressBands.js';
 import { TEMP_DIR, cleanupFiles } from './uploadTemp.js';
 import { transcodeForUpload } from './transcodeStep.js';
 import { extractVideoThumbnailsToDisk } from './thumbnailDiskStep.js';
+import { extractMediaMetadata } from '../mediaMetadata.js';
 
 function logProcessingError(mediaId: string, err: unknown): void {
   const message = err instanceof Error ? err.message : String(err);
@@ -44,6 +45,8 @@ export async function processUpload(
   const encThumbPaths: string[] = [];
 
   try {
+    const fileMetadata = await extractMediaMetadata(inputPath, mediaType);
+
     const duration = await transcodeForUpload({
       mediaId,
       mediaType,
@@ -144,8 +147,15 @@ export async function processUpload(
     }
 
     await pool.query(
-      `UPDATE media SET status = 'ready', duration_sec = $1, file_size_bytes = $2, encryption_iv = $3, thumbnails = $4::jsonb WHERE id = $5`,
-      [duration, fileSize, encryptionIv, JSON.stringify(frames), mediaId],
+      `UPDATE media SET status = 'ready', duration_sec = $1, file_size_bytes = $2, encryption_iv = $3, thumbnails = $4::jsonb, metadata = $5::jsonb WHERE id = $6`,
+      [
+        duration,
+        fileSize,
+        encryptionIv,
+        JSON.stringify(frames),
+        fileMetadata ? JSON.stringify(fileMetadata) : null,
+        mediaId,
+      ],
     );
 
     console.log(`[${mediaId}] Done.`);
