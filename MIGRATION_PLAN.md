@@ -60,6 +60,8 @@ User passphrase
 ```
 nodeo/
 ├── docker-compose.yml
+├── docker-compose.local.yml
+├── docker-compose.e2e.yml
 ├── .env.example
 ├── MIGRATION_PLAN.md
 ├── README.md
@@ -167,7 +169,7 @@ CREATE TABLE media (
 - [x] Legacy prototype code removed; logo kept at `frontend/public/logo.svg`
 - [x] Initialize backend (Express, `pg`, config from env)
 - [x] Initialize frontend (Vue 3 + Vite + PrimeVue + Pinia + Vue Router)
-- [x] Create `docker-compose.yml` (backend + frontend + dev postgres)
+- [x] Create `docker-compose.yml` (backend + frontend); `docker-compose.local.yml` (Postgres); `docker-compose.e2e.yml` (MinIO for E2E)
 - [x] Create `.env.example` with all required variables
 - [x] Create database migration (collections + media tables)
 - [x] Run migrations on startup
@@ -239,9 +241,9 @@ CREATE TABLE media (
 
 - [x] **Linting (baseline)** — Backend: ESLint 9 + `typescript-eslint` (`recommended`). Frontend: Oxlint (correctness) + ESLint with `eslint-plugin-vue` `flat/recommended` and TypeScript recommended; generated `schema.d.ts` ignored. Run `npm run lint` in each package.
 - [x] **CI/CD (GitHub Actions) — baseline** — `.github/workflows/ci.yml` runs on every PR and push to `master`/`main`: backend `lint` + `typecheck` + `test` (Vitest), frontend `lint` + `type-check` + `build-only` (Node 24).
-- [ ] **CI/CD — extend** — add frontend unit tests and E2E jobs when ready.
+- [x] **CI/CD — extend** — E2E: Playwright + Cucumber (Gherkin, English scenarios), job in `.github/workflows/ci.yml` brings up `docker compose` with `docker-compose.yml` + `docker-compose.local.yml` + `docker-compose.e2e.yml`, `e2e/fixtures` (optional `sample.mp3` / `sample.mp4`; CI generates tiny files via ffmpeg if missing). See `docs/e2e.md`, `docs/docker.md`. Frontend unit tests still optional.
 - [x] **Backend unit tests (Vitest)** — `backend/test/*.test.ts`: encryption (derive, wrap/unwrap DEK, CTR counter, stream decipher at aligned offset), `KeyCache` TTL with fake timers, `validateFields`, transcoding helpers (`detectMediaType`, output mime/extension, profile maps). Run `npm run test` in `backend/`.
-- [ ] **Frontend unit / E2E (GHA)** — Vitest + Vue Test Utils; optional Playwright/Cypress; coverage thresholds optional.
+- [ ] **Frontend unit / E2E (GHA)** — Vitest + Vue Test Utils (unit); E2E covered by Playwright job (see above). Coverage thresholds optional.
 - [ ] **Refactor toward classes / service modules** — extract cohesive logic (encryption, transcoding, S3, media pipeline) from route handlers into small classes or dedicated modules with clear boundaries to improve testability and readability.
 - [ ] **Collection as playlist** — treat a collection (or a dedicated playlist view) as a continuous queue: play all audio in order, auto-advance to the next track, optional shuffle/repeat, mobile-friendly for in-car use (large controls, minimal taps).
 - [ ] **Docker images via GHA** — workflow that builds multi-arch or `linux/amd64` images for `backend` and `frontend`, pushes to GitHub Container Registry (or Docker Hub), tags with semver/git SHA; provide a `docker-compose` example (or override file) that uses only `image:` references so deployers pull pre-built images without cloning the repo for builds.

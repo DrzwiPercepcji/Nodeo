@@ -46,6 +46,7 @@ function handleLogout() {
         text
         rounded
         severity="secondary"
+        aria-label="Log out"
         @click="handleLogout"
       />
     </div>

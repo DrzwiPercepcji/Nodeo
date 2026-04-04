@@ -1,0 +1,46 @@
+# E2E / CI overlay: MinIO + bucket bootstrap. Requires Postgres from docker-compose.local.yml.
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.e2e.yml up -d --build
+# Expects a root `.env` with S3_* pointing at MinIO (see `.github/workflows/ci.yml` and docs/docker.md).
+
+services:
+  minio:
+    image: minio/minio:latest
+    container_name: nodeo-minio-e2e
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-e2eaccess}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-e2esecretkeymustbelongenough123}
+    expose:
+      - "9000"
+    volumes:
+      - minio-e2e-data:/data
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: nodeo-minio-init-e2e
+    depends_on:
+      - minio
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        i=0
+        while [ $$i -lt 45 ]; do
+          mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD" && break
+          i=$$((i + 1))
+          sleep 2
+        done
+        mc mb "local/$$S3_BUCKET" --ignore-existing
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-e2eaccess}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-e2esecretkeymustbelongenough123}
+      S3_BUCKET: ${S3_BUCKET:-nodeo-e2e}
+
+  backend:
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
+
+volumes:
+  minio-e2e-data:

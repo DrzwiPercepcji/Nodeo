@@ -11,7 +11,7 @@ Private self-hosted media streaming service with per-collection encryption and S
 - **Encrypted streaming** — range-request support with seekable CTR decryption
 - **S3 storage** — any S3-compatible backend (AWS, MinIO, etc.)
 - **Dark mode** — toggle with persistent preference
-- **Docker Compose** — two containers (backend + frontend) + PostgreSQL
+- **Docker Compose** — base file is backend + frontend; optional `docker-compose.local.yml` adds PostgreSQL (see [docs/docker.md](docs/docker.md))
 
 ## Quick Start
 
@@ -43,11 +43,19 @@ Fill in `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` from your S3 
 
 ### 3. Run
 
+**Local stack with Postgres** (typical):
+
 ```bash
-docker compose up -d --build
+docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
 ```
 
-Open `http://localhost:8080` and log in.
+**Backend + frontend only** (Postgres elsewhere — set `POSTGRES_HOST` in `.env` accordingly):
+
+```bash
+docker compose -f docker-compose.yml up -d --build
+```
+
+See [docs/docker.md](docs/docker.md) for E2E (MinIO) and teardown. Open `http://localhost:8080` and log in.
 
 ## Development
 
