@@ -1,4 +1,4 @@
-# Local development overlay: PostgreSQL + backend waits for DB health.
+# Local development overlay: PostgreSQL + build app images from ./backend and ./frontend (merged with base `image:` names).
 # Usage: docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
 # Set POSTGRES_HOST=postgres in `.env` (see `.env.example`).
 
@@ -22,9 +22,13 @@ services:
       retries: 5
 
   backend:
+    build: ./backend
     depends_on:
       postgres:
         condition: service_healthy
+
+  frontend:
+    build: ./frontend
 
 volumes:
   pgdata:

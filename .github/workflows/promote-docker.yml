@@ -1,0 +1,44 @@
+# Retag GHCR images from latest-dev → latest (no rebuild). Run manually after validating latest-dev.
+name: Promote Docker images (latest-dev → latest)
+
+on:
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  promote:
+    name: Promote backend and frontend on GHCR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: GHCR image names (lowercase)
+        id: image
+        run: |
+          set -e
+          OWNER_LC=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
+          REPO_LC=$(echo '${{ github.event.repository.name }}' | tr '[:upper:]' '[:lower:]')
+          echo "backend=${OWNER_LC}/${REPO_LC}-backend" >> "$GITHUB_OUTPUT"
+          echo "frontend=${OWNER_LC}/${REPO_LC}-frontend" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull latest-dev, retag as latest, push
+        run: |
+          set -e
+          BACKEND="ghcr.io/${{ steps.image.outputs.backend }}"
+          FRONTEND="ghcr.io/${{ steps.image.outputs.frontend }}"
+          docker pull "${BACKEND}:latest-dev"
+          docker pull "${FRONTEND}:latest-dev"
+          docker tag "${BACKEND}:latest-dev" "${BACKEND}:latest"
+          docker tag "${FRONTEND}:latest-dev" "${FRONTEND}:latest"
+          docker push "${BACKEND}:latest"
+          docker push "${FRONTEND}:latest"

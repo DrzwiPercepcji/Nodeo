@@ -1,18 +1,38 @@
 # Docker Compose
 
-The stack is split across several Compose files so the **base** project file stays limited to **backend** and **frontend** (for image-only or external-database deployments). PostgreSQL and E2E extras are optional overlays.
+The stack is split across several Compose files. The **base** file pulls **pre-built images** from GitHub Container Registry (`latest`). **Local** overlay adds PostgreSQL and **`build:`** so you develop from source without changing the base file.
+
+## Images and tags
+
+| Tag | Meaning |
+|-----|---------|
+| `latest-dev` | Built and pushed automatically on push to `master`/`main` after CI + E2E succeed (`.github/workflows/ci.yml`). Moves with every green merge. |
+| `sha-<full git SHA>` | Immutable tag for the same build as that run (full 40-character commit). Safe to pin in production (e.g. `…-backend:sha-abc…`). |
+| `sha-<7 chars>` | Same image, short prefix (convenience). Rare SHA collisions possible in theory; prefer full `sha-<40>` or digest for strict pins. |
+| `latest` | Production-style tag: run **Promote Docker images (latest-dev → latest)** in Actions. Copies the current `latest-dev` manifest to `latest` (no rebuild). Until the first promotion, use `…:latest-dev` or a `sha-*` tag. |
+
+Each pushed image includes **OCI annotations** (view in GitHub Packages or `docker inspect … --format '{{json .Config.Labels}}'`): `org.opencontainers.image.source`, `revision` (full SHA), `ref.name` (branch), `created` (build UTC time), `title`, `description`, `url`, `documentation`, `version` (`sha-<7>`), `licenses` (`MIT`).
+
+Default image names (lowercase GHCR convention) for [DrzwiPercepcji/Nodeo](https://github.com/DrzwiPercepcji/Nodeo):
+
+- `ghcr.io/drzwipercepcji/nodeo-backend:latest`
+- `ghcr.io/drzwipercepcji/nodeo-frontend:latest`
+
+Override with environment variables `NODEO_BACKEND_IMAGE` and `NODEO_FRONTEND_IMAGE` if you use a fork or mirror.
+
+Private packages: run `docker login ghcr.io` before `docker compose pull` / `up`.
 
 ## Files
 
 | File | Contents |
 |------|----------|
-| `docker-compose.yml` | **Backend** and **frontend** only. No database. Backend does not `depends_on` Postgres; it uses `POSTGRES_HOST` (and related vars) from `.env`. |
-| `docker-compose.local.yml` | **PostgreSQL 16** (Alpine), volume `pgdata`, optional host port `POSTGRES_EXPOSE_PORT`. Extends **backend** with `depends_on: postgres` (wait for health). |
+| `docker-compose.yml` | **Backend** and **frontend** only, **`image:`** to GHCR `latest` (defaults above). No database; `POSTGRES_HOST` comes from `.env`. |
+| `docker-compose.local.yml` | **PostgreSQL 16** (Alpine), volume `pgdata`, optional host port `POSTGRES_EXPOSE_PORT`. **`build: ./backend`** and **`build: ./frontend`** so merged services build from this repo and still tag with the same image names. Extends **backend** with `depends_on: postgres` (wait for health). |
 | `docker-compose.e2e.yml` | **MinIO** + one-shot **minio-init** (create bucket). Extends **backend** with `depends_on: minio-init` (wait for successful exit). Intended together with **local** so Postgres and S3 are both present. |
 
 Compose **merges** `backend.depends_on` across files: with base + local + e2e, the backend waits for **Postgres (healthy)** and **minio-init (completed)**.
 
-## Full stack locally (app + Postgres)
+## Full stack locally (app + Postgres, build from source)
 
 From the repository root, with `.env` filled (including `POSTGRES_PASSWORD`, `POSTGRES_HOST=postgres`, S3 credentials for real storage or MinIO if you add the e2e overlay):
 
@@ -26,12 +46,12 @@ Stop and remove containers (keep Postgres data in volume unless you add `-v`):
 docker compose -f docker-compose.yml -f docker-compose.local.yml down
 ```
 
-## Base stack only (external Postgres)
+## Base stack only (pull pre-built images, external Postgres)
 
-Use when the database runs outside Compose (managed service, another host, etc.). Set `POSTGRES_HOST` (and port/user/password/DB) in `.env` to that instance — **not** the hostname `postgres`.
+Use when the database runs outside Compose (managed service, another host, etc.). Set `POSTGRES_HOST` (and port/user/password/DB) in `.env` to that instance — **not** the hostname `postgres`. No local clone with Dockerfiles required if you only need runtime config:
 
 ```bash
-docker compose -f docker-compose.yml up -d --build
+docker compose -f docker-compose.yml up -d
 ```
 
 ## E2E stack (Postgres + MinIO + app)

@@ -166,6 +166,13 @@ jobs:
           echo "backend=${OWNER_LC}/${REPO_LC}-backend" >> "$GITHUB_OUTPUT"
           echo "frontend=${OWNER_LC}/${REPO_LC}-frontend" >> "$GITHUB_OUTPUT"
 
+      - name: OCI / tag helpers
+        id: oci
+        run: |
+          set -e
+          echo "short_sha=${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
+          echo "created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -182,10 +189,21 @@ jobs:
           context: ./backend
           push: true
           platforms: linux/amd64
-          tags: ghcr.io/${{ steps.image.outputs.backend }}:latest-dev
+          tags: |
+            ghcr.io/${{ steps.image.outputs.backend }}:latest-dev
+            ghcr.io/${{ steps.image.outputs.backend }}:sha-${{ github.sha }}
+            ghcr.io/${{ steps.image.outputs.backend }}:sha-${{ steps.oci.outputs.short_sha }}
           labels: |
+            org.opencontainers.image.title=Nodeo backend
+            org.opencontainers.image.description=Nodeo API (Express, Node 24)
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.url=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.documentation=${{ github.server_url }}/${{ github.repository }}/blob/${{ github.ref_name }}/README.md
+            org.opencontainers.image.licenses=MIT
             org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.ref.name=${{ github.ref_name }}
+            org.opencontainers.image.version=sha-${{ steps.oci.outputs.short_sha }}
+            org.opencontainers.image.created=${{ steps.oci.outputs.created }}
 
       - name: Build and push frontend
         uses: docker/build-push-action@v6
@@ -193,7 +211,18 @@ jobs:
           context: ./frontend
           push: true
           platforms: linux/amd64
-          tags: ghcr.io/${{ steps.image.outputs.frontend }}:latest-dev
+          tags: |
+            ghcr.io/${{ steps.image.outputs.frontend }}:latest-dev
+            ghcr.io/${{ steps.image.outputs.frontend }}:sha-${{ github.sha }}
+            ghcr.io/${{ steps.image.outputs.frontend }}:sha-${{ steps.oci.outputs.short_sha }}
           labels: |
+            org.opencontainers.image.title=Nodeo frontend
+            org.opencontainers.image.description=Nodeo web UI (Vue 3, Vite, nginx)
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.url=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.documentation=${{ github.server_url }}/${{ github.repository }}/blob/${{ github.ref_name }}/README.md
+            org.opencontainers.image.licenses=MIT
             org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.ref.name=${{ github.ref_name }}
+            org.opencontainers.image.version=sha-${{ steps.oci.outputs.short_sha }}
+            org.opencontainers.image.created=${{ steps.oci.outputs.created }}

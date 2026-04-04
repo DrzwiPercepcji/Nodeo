@@ -1,10 +1,13 @@
-# Application services only (backend + frontend). No database in this file.
-# For local Postgres, add: -f docker-compose.local.yml
-# For E2E (Postgres + MinIO), add: -f docker-compose.local.yml -f docker-compose.e2e.yml
+# Pre-built images from GitHub Container Registry (default: DrzwiPercepcji/Nodeo, tag `latest`).
+# Promote `latest-dev` → `latest` with Actions workflow "Promote Docker images (latest-dev → latest)".
+# Override with NODEO_BACKEND_IMAGE / NODEO_FRONTEND_IMAGE (e.g. forks or private mirrors).
+#
+# Local development (build from this repo): add docker-compose.local.yml — it sets `build:` for backend and frontend.
+# For image-only pull: `docker compose up -d` (no `--build`).
 
 services:
   backend:
-    build: ./backend
+    image: ${NODEO_BACKEND_IMAGE:-ghcr.io/drzwipercepcji/nodeo-backend:latest}
     container_name: nodeo-backend
     restart: unless-stopped
     env_file: .env
@@ -12,7 +15,7 @@ services:
       - "${BACKEND_PORT:-3000}:3000"
 
   frontend:
-    build: ./frontend
+    image: ${NODEO_FRONTEND_IMAGE:-ghcr.io/drzwipercepcji/nodeo-frontend:latest}
     container_name: nodeo-frontend
     restart: unless-stopped
     ports:

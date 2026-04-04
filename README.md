@@ -11,7 +11,7 @@ Private self-hosted media streaming service with per-collection encryption and S
 - **Encrypted streaming** — range-request support with seekable CTR decryption
 - **S3 storage** — any S3-compatible backend (AWS, MinIO, etc.)
 - **Dark mode** — toggle with persistent preference
-- **Docker Compose** — base file is backend + frontend; optional `docker-compose.local.yml` adds PostgreSQL (see [docs/docker.md](docs/docker.md))
+- **Docker Compose** — base file pulls **GHCR** images (`latest`); `docker-compose.local.yml` adds PostgreSQL and **builds** backend/frontend from source (see [docs/docker.md](docs/docker.md))
 
 ## Quick Start
 
@@ -49,11 +49,13 @@ Fill in `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` from your S3 
 docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
 ```
 
-**Backend + frontend only** (Postgres elsewhere — set `POSTGRES_HOST` in `.env` accordingly):
+**Backend + frontend only** (pull pre-built images; Postgres elsewhere — set `POSTGRES_HOST` in `.env`):
 
 ```bash
-docker compose -f docker-compose.yml up -d --build
+docker compose -f docker-compose.yml up -d
 ```
+
+CI publishes `latest-dev` on each merge; promote to `latest` with GitHub Actions → **Promote Docker images (latest-dev → latest)** so `docker compose` pulls stable tags.
 
 See [docs/docker.md](docs/docker.md) for E2E (MinIO) and teardown. Open `http://localhost:8080` and log in.
 
