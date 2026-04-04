@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import logoUrl from '../assets/logo.svg?url'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from 'primevue/usetoast'
@@ -33,8 +34,16 @@ async function handleLogin() {
   <div class="login-container">
     <div class="login-card">
       <div class="login-header">
-        <img src="/logo.svg" alt="Nodeo" class="login-logo" width="280" height="115" />
-        <p class="login-tagline">Private media streaming</p>
+        <img
+          :src="logoUrl"
+          alt="Nodeo"
+          class="login-logo"
+          width="280"
+          height="115"
+        >
+        <p class="login-tagline">
+          Private media streaming
+        </p>
       </div>
 
       <form
@@ -55,8 +64,8 @@ async function handleLogin() {
         <div class="field">
           <label for="password">Password</label>
           <Password
-            input-id="password"
             v-model="password"
+            input-id="password"
             placeholder="Enter password"
             :feedback="false"
             toggle-mask

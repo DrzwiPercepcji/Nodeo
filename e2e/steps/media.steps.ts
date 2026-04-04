@@ -24,5 +24,6 @@ When('I confirm the upload in the dialog', async function (this: NodeoWorld) {
 
 Then('the media {string} is ready', async function (this: NodeoWorld, title: string) {
   const card = this.page.locator('.media-card').filter({ hasText: title })
-  await expect(card.locator('.pi-headphones, img.thumb')).first().toBeVisible({ timeout: 300_000 })
+  const readyMarker = card.locator('.pi-headphones, img.thumb').first()
+  await expect(readyMarker).toBeVisible({ timeout: 300_000 })
 })
