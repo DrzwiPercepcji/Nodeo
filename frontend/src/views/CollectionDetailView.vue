@@ -10,6 +10,7 @@ import AppTopbar from '@/components/AppTopbar.vue'
 import ProgressSpinner from 'primevue/progressspinner'
 import Tag from 'primevue/tag'
 import UploadDialog from '@/components/UploadDialog.vue'
+import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 import type { components } from '@/api/schema'
 import { mediaMetadataSubtitle } from '@/utils/mediaMetadataDisplay'
 
@@ -26,6 +27,8 @@ const searchQuery = ref('')
 const showUpload = ref(false)
 const uploadDialogRef = ref<InstanceType<typeof UploadDialog> | null>(null)
 const deletingId = ref<string | null>(null)
+const showDeleteConfirm = ref(false)
+const deleteTarget = ref<{ id: string; title: string } | null>(null)
 const pollingIds = ref<Set<string>>(new Set())
 
 type MediaProgress = NonNullable<Media['progress']>
@@ -117,11 +120,19 @@ async function handleUpload(data: { file: File; title: string; description: stri
   }
 }
 
-async function handleDelete(id: string, title: string) {
-  deletingId.value = id
+function openDelete(id: string, title: string) {
+  deleteTarget.value = { id, title }
+  showDeleteConfirm.value = true
+}
+
+async function confirmDelete() {
+  const target = deleteTarget.value
+  if (!target) return
+  deletingId.value = target.id
   try {
-    await mediaStore.remove(id)
-    toast.add({ severity: 'success', summary: 'Deleted', detail: `"${title}" deleted`, life: 3000 })
+    await mediaStore.remove(target.id)
+    toast.add({ severity: 'success', summary: 'Deleted', detail: `"${target.title}" deleted`, life: 3000 })
+    deleteTarget.value = null
   } catch {
     toast.add({ severity: 'error', summary: 'Error', detail: 'Failed to delete', life: 3000 })
   } finally {
@@ -352,7 +363,7 @@ function openMedia(media: Media) {
               size="small"
               severity="danger"
               :loading="deletingId === media.id"
-              @click="handleDelete(media.id, media.title)"
+              @click="openDelete(media.id, media.title)"
             />
           </div>
         </div>
@@ -364,6 +375,12 @@ function openMedia(media: Media) {
       v-model:visible="showUpload"
       :collection-id="collectionId"
       @upload="handleUpload"
+    />
+
+    <ConfirmDeleteDialog
+      v-model:visible="showDeleteConfirm"
+      :title="deleteTarget?.title ?? ''"
+      @confirm="confirmDelete"
     />
   </div>
 </template>
