@@ -21,7 +21,7 @@ describe('useAuthStore', () => {
   })
 
   it('login stores token and username on success', async () => {
-    postMock.mockResolvedValue({ data: { token: 'jwt-token' }, error: undefined })
+    postMock.mockResolvedValue({ data: { token: 'jwt-token' }, error: undefined, response: { status: 200 } })
     const store = useAuthStore()
     await store.login('alice', 'secret')
     expect(store.token).toBe('jwt-token')
@@ -30,13 +30,13 @@ describe('useAuthStore', () => {
   })
 
   it('login throws when API returns error', async () => {
-    postMock.mockResolvedValue({ data: undefined, error: { message: 'Unauthorized' } })
+    postMock.mockResolvedValue({ data: undefined, error: { error: 'Unauthorized' }, response: { status: 401 } })
     const store = useAuthStore()
-    await expect(store.login('a', 'b')).rejects.toThrow('Login failed')
+    await expect(store.login('a', 'b')).rejects.toThrow('Unauthorized')
   })
 
   it('logout clears token and storage', async () => {
-    postMock.mockResolvedValue({ data: { token: 't' }, error: undefined })
+    postMock.mockResolvedValue({ data: { token: 't' }, error: undefined, response: { status: 200 } })
     const store = useAuthStore()
     await store.login('u', 'p')
     store.logout()
