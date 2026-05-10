@@ -25,6 +25,7 @@ const shuffledOrder = ref<Media[] | null>(null)
 /** Cycles: off → all → one */
 const repeatMode = ref<'off' | 'all' | 'one'>('off')
 const isPlayingUi = ref(false)
+const coverArtFailed = ref(new Set<string>())
 
 const collection = computed(() =>
   collectionsStore.collections.find((c) => c.id === collectionId),
@@ -42,6 +43,14 @@ const queue = computed(() => shuffledOrder.value ?? sortedAudios.value)
 const currentTrack = computed(() => queue.value[currentIndex.value] ?? null)
 
 const currentTrackSubtitle = computed(() => mediaMetadataSubtitle(currentTrack.value?.metadata))
+
+function hasCoverArt(track: Media): boolean {
+  return Boolean(track.metadata?.artist && track.metadata?.album) && !coverArtFailed.value.has(track.id)
+}
+
+function onCoverError(mediaId: string) {
+  coverArtFailed.value = new Set(coverArtFailed.value).add(mediaId)
+}
 
 function shuffleArray<T>(items: T[]): T[] {
   const a = [...items]
@@ -205,7 +214,17 @@ onMounted(async () => {
             class="artwork"
             aria-hidden="true"
           >
-            <i class="pi pi-headphones artwork-icon" />
+            <img
+              v-if="currentTrack && hasCoverArt(currentTrack)"
+              :src="mediaStore.coverArtUrl(currentTrack.id)"
+              alt=""
+              class="artwork-img"
+              @error="onCoverError(currentTrack!.id)"
+            >
+            <i
+              v-else
+              class="pi pi-headphones artwork-icon"
+            />
           </div>
           <h1 class="track-title">
             {{ currentTrack?.title ?? '—' }}
@@ -308,6 +327,19 @@ onMounted(async () => {
                 @click="jumpTo(i)"
               >
                 <span class="qi-idx">{{ i + 1 }}</span>
+                <img
+                  v-if="hasCoverArt(track)"
+                  :src="mediaStore.coverArtUrl(track.id)"
+                  alt=""
+                  class="qi-art"
+                  @error="onCoverError(track.id)"
+                >
+                <span
+                  v-else
+                  class="qi-art-placeholder"
+                >
+                  <i class="pi pi-headphones" />
+                </span>
                 <span class="qi-main">
                   <span class="qi-title">{{ track.title }}</span>
                   <span
@@ -378,6 +410,13 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.artwork-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 20px;
 }
 
 .artwork-icon {
@@ -514,6 +553,27 @@ onMounted(async () => {
   min-width: 1.5rem;
 }
 
+.qi-art {
+  width: 36px;
+  height: 36px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.qi-art-placeholder {
+  width: 36px;
+  height: 36px;
+  border-radius: 4px;
+  background: var(--p-surface-ground);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 0.9rem;
+  color: var(--p-text-muted-color);
+}
+
 .qi-main {
   flex: 1;
   min-width: 0;
@@ -564,6 +624,10 @@ onMounted(async () => {
 
   .artwork-icon {
     font-size: 4rem;
+  }
+
+  .artwork-img {
+    border-radius: 14px;
   }
 }
 </style>
