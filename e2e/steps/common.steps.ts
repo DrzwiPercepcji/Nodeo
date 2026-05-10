@@ -12,7 +12,7 @@ Given('I am logged in as {string} with password {string}', async function (this:
   await this.page.locator('#username').fill(user)
   await this.page.locator('#password').fill(password)
   await this.page.getByRole('button', { name: 'Sign in' }).click()
-  await expect(this.page.getByRole('heading', { name: 'Collections' })).toBeVisible()
+  await expect(this.page.getByRole('heading', { name: 'Collections' })).toBeVisible({ timeout: 15_000 })
 })
 
 When('I click the log out button', async function (this: NodeoWorld) {

@@ -12,7 +12,7 @@ When('I create an encrypted collection named {string} with passphrase {string}',
   await this.page.getByRole('button', { name: 'New Collection' }).click()
   await this.page.locator('#col-name').fill(name)
   await this.page.locator('#col-enc').click()
-  await this.page.locator('#col-pass').fill(passphrase)
+  await this.page.locator('#col-pass input').fill(passphrase)
   await this.page.getByRole('button', { name: 'Create' }).click()
 })
 
