@@ -22,8 +22,13 @@ async function handleLogin() {
   try {
     await auth.login(username.value, password.value)
     router.push('/')
-  } catch {
-    toast.add({ severity: 'error', summary: 'Login failed', detail: 'Invalid credentials', life: 3000 })
+  } catch (err) {
+    const status = (err as { status?: number }).status
+    if (status === 429) {
+      toast.add({ severity: 'warn', summary: 'Too many attempts', detail: 'Please wait a few minutes before trying again', life: 8000 })
+    } else {
+      toast.add({ severity: 'error', summary: 'Login failed', detail: 'Invalid credentials', life: 3000 })
+    }
   } finally {
     loading.value = false
   }

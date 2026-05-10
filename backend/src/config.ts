@@ -58,6 +58,7 @@ const config = {
     passwordHash: required('AUTH_PASSWORD_HASH'),
     jwtSecret: required('JWT_SECRET'),
     jwtExpiresIn: '90d' as const,
+    loginRateLimitMax: parsePositiveInt(process.env.AUTH_RATE_LIMIT_MAX, 5),
   },
 
   s3: {
