@@ -115,18 +115,11 @@ jobs:
           docker compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.e2e.yml logs --tail 200
           exit 1
 
-      - name: Install ffmpeg and ensure media fixtures
+      - name: Install ffmpeg and generate fixtures
         run: |
-          set -e
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg
-          mkdir -p e2e/fixtures
-          if [ ! -f e2e/fixtures/sample.mp3 ]; then
-            ffmpeg -y -f lavfi -i "sine=frequency=440:duration=1" -c:a libmp3lame -b:a 128k e2e/fixtures/sample.mp3
-          fi
-          if [ ! -f e2e/fixtures/sample.mp4 ]; then
-            ffmpeg -y -f lavfi -i "testsrc=duration=1:size=320x240:rate=25" -c:v libx264 -pix_fmt yuv420p -movflags +faststart e2e/fixtures/sample.mp4
-          fi
+          bash e2e/generate-fixtures.sh
 
       - name: Install E2E deps and Playwright browser
         working-directory: e2e
