@@ -27,3 +27,33 @@ Then('the media {string} is ready', async function (this: NodeoWorld, title: str
   const readyMarker = card.locator('.pi-headphones, img.thumb').first()
   await expect(readyMarker).toBeVisible({ timeout: 300_000 })
 })
+
+When('I click the delete button on media {string}', async function (this: NodeoWorld, title: string) {
+  const card = this.page.locator('.media-card').filter({ hasText: title })
+  await card.locator('.media-actions button').click()
+})
+
+Then('I see the delete confirmation dialog', async function (this: NodeoWorld) {
+  const dialog = this.page.getByRole('dialog').filter({ hasText: 'Delete' })
+  await expect(dialog).toBeVisible({ timeout: 5_000 })
+})
+
+When('I cancel the delete dialog', async function (this: NodeoWorld) {
+  const dialog = this.page.getByRole('dialog').filter({ hasText: 'Delete' })
+  await dialog.getByRole('button', { name: 'Cancel' }).click()
+})
+
+When('I confirm the delete dialog', async function (this: NodeoWorld) {
+  const dialog = this.page.getByRole('dialog').filter({ hasText: 'Delete' })
+  await dialog.getByRole('button', { name: 'Delete' }).click()
+})
+
+Then('the media {string} is visible', async function (this: NodeoWorld, title: string) {
+  const card = this.page.locator('.media-card').filter({ hasText: title })
+  await expect(card).toBeVisible({ timeout: 5_000 })
+})
+
+Then('the media {string} is gone', async function (this: NodeoWorld, title: string) {
+  const card = this.page.locator('.media-card').filter({ hasText: title })
+  await expect(card).toHaveCount(0, { timeout: 10_000 })
+})
