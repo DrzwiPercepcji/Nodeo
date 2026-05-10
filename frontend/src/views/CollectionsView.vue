@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useCollectionsStore } from '@/stores/collections'
 import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
@@ -26,6 +26,14 @@ const unlockDialogRef = ref<InstanceType<typeof UnlockDialog> | null>(null)
 const deletingId = ref<string | null>(null)
 const deleteTarget = ref<Collection | null>(null)
 const showDelete = ref(false)
+const privateOpen = ref(false)
+
+const publicCollections = computed(() =>
+  store.collections.filter((c) => !c.is_encrypted),
+)
+const privateCollections = computed(() =>
+  store.collections.filter((c) => c.is_encrypted),
+)
 
 onMounted(() => store.fetchAll())
 
@@ -128,69 +136,134 @@ async function handleUnlock(passphrase: string) {
         <p>No collections yet. Create one to get started.</p>
       </div>
 
-      <div
-        v-else
-        class="grid"
-      >
+      <template v-else>
         <div
-          v-for="col in store.collections"
-          :key="col.id"
-          class="card"
-          @click="handleCollectionClick(col)"
+          v-if="publicCollections.length > 0"
+          class="grid"
         >
-          <div class="card-icon">
-            <i
-              :class="col.is_encrypted ? (col.is_unlocked ? 'pi pi-lock-open' : 'pi pi-lock') : 'pi pi-folder'"
-              :style="{ color: col.is_encrypted && !col.is_unlocked ? 'var(--p-orange-500)' : 'var(--p-primary-color)' }"
-            />
-          </div>
-          <div class="card-body">
-            <h3>{{ col.name }}</h3>
-            <p
-              v-if="col.description"
-              class="card-desc"
+          <div
+            v-for="col in publicCollections"
+            :key="col.id"
+            class="card"
+            @click="handleCollectionClick(col)"
+          >
+            <div class="card-icon">
+              <i
+                class="pi pi-folder"
+                style="color: var(--p-primary-color)"
+              />
+            </div>
+            <div class="card-body">
+              <h3>{{ col.name }}</h3>
+              <p
+                v-if="col.description"
+                class="card-desc"
+              >
+                {{ col.description }}
+              </p>
+              <div class="card-meta">
+                <span class="badge badge-open">
+                  <i class="pi pi-folder" /> Open
+                </span>
+              </div>
+            </div>
+            <div
+              class="card-actions"
+              @click.stop
             >
-              {{ col.description }}
-            </p>
-            <div class="card-meta">
-              <span
-                v-if="col.is_encrypted"
-                class="badge badge-encrypted"
-              >
-                <i class="pi pi-shield" /> Encrypted
-              </span>
-              <span
-                v-else
-                class="badge badge-open"
-              >
-                <i class="pi pi-folder" /> Open
-              </span>
+              <Button
+                icon="pi pi-pencil"
+                text
+                rounded
+                size="small"
+                severity="secondary"
+                @click="openEdit(col)"
+              />
+              <Button
+                icon="pi pi-trash"
+                text
+                rounded
+                size="small"
+                severity="danger"
+                :loading="deletingId === col.id"
+                @click="openDelete(col)"
+              />
             </div>
           </div>
-          <div
-            class="card-actions"
-            @click.stop
+        </div>
+
+        <div
+          v-if="privateCollections.length > 0"
+          class="private-section"
+        >
+          <button
+            class="private-toggle"
+            @click="privateOpen = !privateOpen"
           >
-            <Button
-              icon="pi pi-pencil"
-              text
-              rounded
-              size="small"
-              severity="secondary"
-              @click="openEdit(col)"
+            <i class="pi pi-lock" />
+            <span>Private collections ({{ privateCollections.length }})</span>
+            <i
+              class="pi pi-chevron-right toggle-chevron"
+              :class="{ open: privateOpen }"
             />
-            <Button
-              icon="pi pi-trash"
-              text
-              rounded
-              size="small"
-              severity="danger"
-              :loading="deletingId === col.id"
-              @click="openDelete(col)"
-            />
+          </button>
+
+          <div
+            v-if="privateOpen"
+            class="grid"
+          >
+            <div
+              v-for="col in privateCollections"
+              :key="col.id"
+              class="card"
+              @click="handleCollectionClick(col)"
+            >
+              <div class="card-icon">
+                <i
+                  :class="col.is_unlocked ? 'pi pi-lock-open' : 'pi pi-lock'"
+                  :style="{ color: col.is_unlocked ? 'var(--p-primary-color)' : 'var(--p-orange-500)' }"
+                />
+              </div>
+              <div class="card-body">
+                <h3>{{ col.name }}</h3>
+                <p
+                  v-if="col.description"
+                  class="card-desc"
+                >
+                  {{ col.description }}
+                </p>
+                <div class="card-meta">
+                  <span class="badge badge-encrypted">
+                    <i class="pi pi-shield" /> Encrypted
+                  </span>
+                </div>
+              </div>
+              <div
+                class="card-actions"
+                @click.stop
+              >
+                <Button
+                  icon="pi pi-pencil"
+                  text
+                  rounded
+                  size="small"
+                  severity="secondary"
+                  @click="openEdit(col)"
+                />
+                <Button
+                  icon="pi pi-trash"
+                  text
+                  rounded
+                  size="small"
+                  severity="danger"
+                  :loading="deletingId === col.id"
+                  @click="openDelete(col)"
+                />
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </template>
     </main>
 
     <DeleteCollectionDialog
@@ -347,5 +420,43 @@ async function handleUnlock(passphrase: string) {
   flex-shrink: 0;
   display: flex;
   gap: 0.125rem;
+}
+
+.private-section {
+  margin-top: 2rem;
+  border-top: 1px solid var(--p-surface-border);
+  padding-top: 0.5rem;
+}
+
+.private-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.25rem;
+  margin-bottom: 1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--p-text-muted-color);
+  transition: color 0.15s;
+}
+
+.private-toggle:hover {
+  color: var(--p-text-color);
+}
+
+.private-toggle > .pi-lock {
+  font-size: 0.9rem;
+}
+
+.toggle-chevron {
+  font-size: 0.7rem;
+  transition: transform 0.2s ease;
+}
+
+.toggle-chevron.open {
+  transform: rotate(90deg);
 }
 </style>
