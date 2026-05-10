@@ -17,6 +17,11 @@ const isAudio = computed(() => media.value?.media_type === 'audio')
 
 const metadataRows = computed(() => mediaMetadataDetailRows(media.value?.metadata))
 
+const coverArtFailed = ref(false)
+const hasCoverArt = computed(() =>
+  Boolean(media.value?.metadata?.artist && media.value?.metadata?.album) && !coverArtFailed.value,
+)
+
 onMounted(async () => {
   media.value = await mediaStore.fetchSingle(mediaId)
 })
@@ -95,7 +100,17 @@ function formatSize(bytes: number | null | undefined): string {
       <!-- Audio player -->
       <template v-else>
         <div class="audio-artwork">
-          <i class="pi pi-headphones audio-icon" />
+          <img
+            v-if="hasCoverArt"
+            :src="mediaStore.coverArtUrl(media!.id)"
+            alt=""
+            class="audio-artwork-img"
+            @error="coverArtFailed = true"
+          >
+          <i
+            v-else
+            class="pi pi-headphones audio-icon"
+          />
         </div>
 
         <div class="audio-info">
@@ -224,6 +239,13 @@ function formatSize(bytes: number | null | undefined): string {
   align-items: center;
   justify-content: center;
   margin-bottom: 2rem;
+}
+
+.audio-artwork-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 16px;
 }
 
 .audio-icon {
