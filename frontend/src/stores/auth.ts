@@ -9,10 +9,15 @@ export const useAuthStore = defineStore('auth', () => {
   const isLoggedIn = computed(() => !!token.value)
 
   async function login(user: string, password: string) {
-    const { data, error } = await api.POST('/auth/login', {
+    const { data, error, response } = await api.POST('/auth/login', {
       body: { username: user, password },
     })
-    if (error || !data) throw new Error('Login failed')
+    if (error || !data) {
+      const msg = (error as { error?: string } | undefined)?.error || 'Login failed'
+      const err = new Error(msg)
+      ;(err as Error & { status: number }).status = response.status
+      throw err
+    }
     token.value = data.token
     localStorage.setItem('nodeo_token', data.token)
     username.value = user
