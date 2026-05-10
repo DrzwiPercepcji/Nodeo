@@ -22,6 +22,7 @@ import {
 import { streamMediaToResponse } from '../services/mediaStreaming.js';
 import { parseThumbnails, serveThumbnail } from '../services/mediaThumbnailServe.js';
 import { progressForApi } from '../services/processingProgress.js';
+import { lookupCoverArt } from '../services/coverArt.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -192,6 +193,24 @@ router.get('/media/:id/thumb', asyncHandler(async (req, res) => {
   } catch {
     res.status(404).json({ error: 'Thumbnail not found' });
   }
+}));
+
+router.get('/media/:id/cover-art', asyncHandler(async (req, res) => {
+  const { rows } = await pool.query(
+    'SELECT metadata FROM media WHERE id = $1',
+    [req.params.id],
+  );
+  if (rows.length === 0) { res.status(404).json({ error: 'Media not found' }); return; }
+
+  const meta = rows[0].metadata as Record<string, string> | null;
+  const artist = meta?.artist?.trim();
+  const album = meta?.album?.trim();
+  if (!artist || !album) { res.status(404).json({ error: 'No artist/album metadata' }); return; }
+
+  const imageUrl = await lookupCoverArt(artist, album);
+  if (!imageUrl) { res.status(404).json({ error: 'Cover art not found' }); return; }
+
+  res.redirect(302, imageUrl);
 }));
 
 router.delete('/media/:id', asyncHandler(async (req, res) => {
