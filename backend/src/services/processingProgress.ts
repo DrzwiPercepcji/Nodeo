@@ -1,4 +1,5 @@
 export type ProcessingStage =
+  | 'downloading'
   | 'transcoding'
   | 'thumbnails'
   | 'encrypting'

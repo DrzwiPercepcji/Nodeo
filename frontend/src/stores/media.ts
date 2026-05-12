@@ -75,6 +75,24 @@ export const useMediaStore = defineStore('media', () => {
     })
   }
 
+  async function importExternal(
+    collectionId: string,
+    payload: { source: string; url: string; title?: string; profile?: string },
+  ): Promise<string> {
+    const body = {
+      source: payload.source,
+      url: payload.url,
+      title: payload.title,
+      profile: (payload.profile ?? 'mp3-192') as 'mp3-128' | 'mp3-192' | 'mp3-320' | 'aac-256',
+    }
+    const { data, error } = await api.POST('/collections/{id}/import', {
+      params: { path: { id: collectionId } },
+      body,
+    })
+    if (error) throw new Error((error as { error?: string }).error || 'Import failed')
+    return data!.id
+  }
+
   function streamUrl(mediaId: string): string {
     const token = localStorage.getItem('nodeo_token') || ''
     const baseUrl = import.meta.env.VITE_API_URL || '/api'
@@ -94,5 +112,5 @@ export const useMediaStore = defineStore('media', () => {
     return `${baseUrl}/media/${mediaId}/cover-art?token=${encodeURIComponent(token)}`
   }
 
-  return { items, loading, fetchByCollection, fetchSingle, remove, upload, streamUrl, thumbUrl, coverArtUrl }
+  return { items, loading, fetchByCollection, fetchSingle, remove, upload, importExternal, streamUrl, thumbUrl, coverArtUrl }
 })
