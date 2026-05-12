@@ -61,6 +61,9 @@ const config = {
     loginRateLimitMax: parsePositiveInt(process.env.AUTH_RATE_LIMIT_MAX, 5),
   },
 
+  /** Directory for persistent app data (settings, cookies, etc.). Docker: mount a volume. */
+  dataDir: process.env.NODEO_DATA_DIR?.trim() || join(tmpdir(), 'nodeo-data'),
+
   s3: {
     bucket: process.env.S3_BUCKET || '',
     region: process.env.S3_REGION || 'eu-central-1',

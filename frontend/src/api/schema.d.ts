@@ -199,6 +199,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/settings/ytdlp-cookies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Check if yt-dlp cookie file is configured */
+        get: operations["getYtdlpCookiesStatus"];
+        /** Upload/overwrite yt-dlp cookie file content */
+        put: operations["putYtdlpCookies"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -318,6 +336,13 @@ export interface components {
             /** Format: uuid */
             id: string;
             status: string;
+        };
+        YtdlpCookiesStatus: {
+            configured: boolean;
+        };
+        YtdlpCookiesUpdate: {
+            /** @description Netscape cookie file content for yt-dlp */
+            cookies: string;
         };
     };
     responses: never;
@@ -788,6 +813,50 @@ export interface operations {
                 };
                 content: {
                     "image/jpeg": string;
+                };
+            };
+        };
+    };
+    getYtdlpCookiesStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cookie configuration status */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["YtdlpCookiesStatus"];
+                };
+            };
+        };
+    };
+    putYtdlpCookies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["YtdlpCookiesUpdate"];
+            };
+        };
+        responses: {
+            /** @description Cookie file updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["YtdlpCookiesStatus"];
                 };
             };
         };

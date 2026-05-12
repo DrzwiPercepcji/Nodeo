@@ -256,6 +256,21 @@ components:
         status:
           type: string
 
+    YtdlpCookiesStatus:
+      type: object
+      required: [configured]
+      properties:
+        configured:
+          type: boolean
+
+    YtdlpCookiesUpdate:
+      type: object
+      required: [cookies]
+      properties:
+        cookies:
+          type: string
+          description: Netscape cookie file content for yt-dlp
+
 paths:
   /health:
     get:
@@ -676,3 +691,37 @@ paths:
               schema:
                 type: string
                 format: binary
+
+  /settings/ytdlp-cookies:
+    get:
+      operationId: getYtdlpCookiesStatus
+      summary: Check if yt-dlp cookie file is configured
+      tags: [settings]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Cookie configuration status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/YtdlpCookiesStatus'
+    put:
+      operationId: putYtdlpCookies
+      summary: Upload/overwrite yt-dlp cookie file content
+      tags: [settings]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/YtdlpCookiesUpdate'
+      responses:
+        '200':
+          description: Cookie file updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/YtdlpCookiesStatus'

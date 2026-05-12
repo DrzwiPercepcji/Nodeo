@@ -7,10 +7,15 @@ vi.mock('node:child_process', () => ({
 
 vi.mock('node:fs/promises', () => ({
   readdir: vi.fn(),
+  access: vi.fn().mockRejectedValue(new Error('ENOENT')),
 }));
 
 vi.mock('../src/services/processingProgress.js', () => ({
   setMediaJobProgress: vi.fn(),
+}));
+
+vi.mock('../src/services/ytdlpCookies.js', () => ({
+  getYtdlpCookiesPath: () => '/fake/cookies.txt',
 }));
 
 import { spawn } from 'node:child_process';
