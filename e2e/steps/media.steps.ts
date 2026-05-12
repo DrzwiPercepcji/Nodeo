@@ -18,7 +18,7 @@ When('I choose file {string} with title {string}', async function (this: NodeoWo
 })
 
 When('I confirm the upload in the dialog', async function (this: NodeoWorld) {
-  const dialog = this.page.getByRole('dialog').filter({ hasText: 'Upload Media' })
+  const dialog = this.page.getByRole('dialog').filter({ hasText: 'Add Media' })
   await dialog.getByRole('button', { name: 'Upload' }).click()
 })
 
@@ -56,4 +56,27 @@ Then('the media {string} is visible', async function (this: NodeoWorld, title: s
 Then('the media {string} is gone', async function (this: NodeoWorld, title: string) {
   const card = this.page.locator('.media-card').filter({ hasText: title })
   await expect(card).toHaveCount(0, { timeout: 10_000 })
+})
+
+When('I switch to the External tab in the upload dialog', async function (this: NodeoWorld) {
+  const dialog = this.page.getByRole('dialog').filter({ hasText: 'Add Media' })
+  await dialog.getByRole('tab', { name: 'External' }).click()
+})
+
+When('I select the {string} plugin', async function (this: NodeoWorld, pluginName: string) {
+  const dialog = this.page.getByRole('dialog').filter({ hasText: 'Add Media' })
+  await dialog.locator('.plugin-card').filter({ hasText: pluginName }).click()
+})
+
+When('I enter YouTube URL {string}', async function (this: NodeoWorld, url: string) {
+  await this.page.locator('#yt-url').fill(url)
+})
+
+When('I enter import title {string}', async function (this: NodeoWorld, title: string) {
+  await this.page.locator('#yt-title').fill(title)
+})
+
+When('I click the import button', async function (this: NodeoWorld) {
+  const dialog = this.page.getByRole('dialog').filter({ hasText: 'Add Media' })
+  await dialog.getByRole('button', { name: 'Import' }).click()
 })
