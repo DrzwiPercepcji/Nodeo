@@ -9,7 +9,6 @@ import { outputExtension, outputMime } from '../services/transcoding.js';
 import {
   TEMP_DIR,
   ensureTempDir,
-  cleanupFiles,
   processUpload,
   validateUploadProfile,
 } from '../services/mediaUploadPipeline.js';

@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount, flushPromises, DOMWrapper } from '@vue/test-utils'
+import { describe, it, expect } from 'vitest'
+import { mount, flushPromises } from '@vue/test-utils'
 import PrimeVue from 'primevue/config'
 import Aura from '@primeuix/themes/aura'
 import UploadDialog from '../UploadDialog.vue'
