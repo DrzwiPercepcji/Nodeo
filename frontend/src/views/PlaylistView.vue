@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useMediaStore } from '@/stores/media'
 import { useCollectionsStore } from '@/stores/collections'
@@ -18,7 +18,7 @@ const collectionsStore = useCollectionsStore()
 const collectionId = route.params.id as string
 const startMediaId = typeof route.query.start === 'string' ? route.query.start : undefined
 
-const audioRef = ref<HTMLAudioElement | null>(null)
+const audioEl = ref<HTMLAudioElement | null>(null)
 const currentIndex = ref(0)
 const shuffleOn = ref(false)
 const shuffledOrder = ref<Media[] | null>(null)
@@ -26,6 +26,7 @@ const shuffledOrder = ref<Media[] | null>(null)
 const repeatMode = ref<'off' | 'all' | 'one'>('off')
 const isPlayingUi = ref(false)
 const coverArtFailed = ref(new Set<string>())
+const savedTitle = document.title
 
 const collection = computed(() =>
   collectionsStore.collections.find((c) => c.id === collectionId),
@@ -105,16 +106,9 @@ function formatDuration(sec: number | null | undefined): string {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-function bindAudioEl(el: HTMLAudioElement | null) {
-  audioRef.value = el
-  if (!el) return
-  el.addEventListener('play', () => { isPlayingUi.value = true })
-  el.addEventListener('pause', () => { isPlayingUi.value = false })
-}
-
 function onAudioEnded() {
   if (repeatMode.value === 'one') {
-    const a = audioRef.value
+    const a = audioEl.value
     if (a) {
       a.currentTime = 0
       void a.play()
@@ -140,31 +134,96 @@ function goPrev() {
   } else {
     return
   }
-  void audioRef.value?.play()
+  void audioEl.value?.play()
 }
 
 function goNext() {
   if (currentIndex.value < queue.value.length - 1) {
     currentIndex.value += 1
-    void audioRef.value?.play()
+    void audioEl.value?.play()
   } else if (repeatMode.value === 'all' && queue.value.length > 0) {
     currentIndex.value = 0
-    void audioRef.value?.play()
+    void audioEl.value?.play()
   }
 }
 
 function jumpTo(index: number) {
   if (index < 0 || index >= queue.value.length) return
   currentIndex.value = index
-  void audioRef.value?.play()
+  void audioEl.value?.play()
 }
 
 function togglePlayPause() {
-  const a = audioRef.value
+  const a = audioEl.value
   if (!a) return
   if (a.paused) void a.play()
   else a.pause()
 }
+
+/* ── MediaSession API (lock-screen / notification controls) ── */
+
+function updateMediaSession() {
+  if (!('mediaSession' in navigator)) return
+  const track = currentTrack.value
+  if (!track) {
+    navigator.mediaSession.metadata = null
+    return
+  }
+  const meta: MediaMetadataInit = {
+    title: track.title,
+    artist: track.metadata?.artist ?? '',
+    album: track.metadata?.album ?? collection.value?.name ?? '',
+  }
+  if (hasCoverArt(track)) {
+    meta.artwork = [{ src: mediaStore.coverArtUrl(track.id), sizes: '512x512', type: 'image/jpeg' }]
+  }
+  navigator.mediaSession.metadata = new MediaMetadata(meta)
+}
+
+function syncMediaSessionPlaybackState() {
+  if (!('mediaSession' in navigator)) return
+  navigator.mediaSession.playbackState = isPlayingUi.value ? 'playing' : 'paused'
+}
+
+function setupMediaSessionHandlers() {
+  if (!('mediaSession' in navigator)) return
+  navigator.mediaSession.setActionHandler('play', () => void audioEl.value?.play())
+  navigator.mediaSession.setActionHandler('pause', () => audioEl.value?.pause())
+  navigator.mediaSession.setActionHandler('previoustrack', goPrev)
+  navigator.mediaSession.setActionHandler('nexttrack', goNext)
+  navigator.mediaSession.setActionHandler('seekbackward', null)
+  navigator.mediaSession.setActionHandler('seekforward', null)
+}
+
+function teardownMediaSession() {
+  if (!('mediaSession' in navigator)) return
+  navigator.mediaSession.metadata = null
+  navigator.mediaSession.playbackState = 'none'
+  const actions: MediaSessionAction[] = ['play', 'pause', 'previoustrack', 'nexttrack', 'seekbackward', 'seekforward']
+  for (const a of actions) navigator.mediaSession.setActionHandler(a, null)
+}
+
+/* ── Document title ── */
+
+function updateDocumentTitle() {
+  const track = currentTrack.value
+  if (!track || collection.value?.is_encrypted) {
+    document.title = savedTitle
+    return
+  }
+  document.title = track.title
+}
+
+/* ── Watchers ── */
+
+watch(currentTrack, () => {
+  updateMediaSession()
+  updateDocumentTitle()
+})
+
+watch(isPlayingUi, syncMediaSessionPlaybackState)
+
+/* ── Lifecycle ── */
 
 onMounted(async () => {
   if (!collectionsStore.collections.length) await collectionsStore.fetchAll()
@@ -177,6 +236,12 @@ onMounted(async () => {
   } else {
     currentIndex.value = 0
   }
+  setupMediaSessionHandlers()
+})
+
+onUnmounted(() => {
+  document.title = savedTitle
+  teardownMediaSession()
 })
 
 </script>
@@ -251,12 +316,14 @@ onMounted(async () => {
         <audio
           v-if="currentTrack"
           :key="currentTrack.id"
-          ref="bindAudioEl"
+          ref="audioEl"
           controls
           autoplay
           class="audio-el"
           :src="mediaStore.streamUrl(currentTrack.id)"
           @ended="onAudioEnded"
+          @play="isPlayingUi = true"
+          @pause="isPlayingUi = false"
         >
           Your browser does not support audio.
         </audio>
