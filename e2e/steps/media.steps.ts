@@ -25,7 +25,19 @@ When('I confirm the upload in the dialog', async function (this: NodeoWorld) {
 Then('the media {string} is ready', async function (this: NodeoWorld, title: string) {
   const card = this.page.locator('.media-card').filter({ hasText: title })
   const readyMarker = card.locator('.pi-headphones, img.thumb').first()
-  await expect(readyMarker).toBeVisible({ timeout: 300_000 })
+  const errorMarker = card.locator('.pi-exclamation-triangle')
+
+  const winner = await Promise.race([
+    readyMarker.waitFor({ state: 'visible', timeout: 300_000 }).then(() => 'ready' as const),
+    errorMarker.waitFor({ state: 'visible', timeout: 300_000 }).then(() => 'error' as const),
+  ])
+
+  if (winner === 'error') {
+    throw new Error(
+      `Media "${title}" ended in error state instead of ready. `
+      + 'Check backend logs (yt-dlp / ffmpeg failure or network issue).',
+    )
+  }
 })
 
 When('I click the delete button on media {string}', async function (this: NodeoWorld, title: string) {

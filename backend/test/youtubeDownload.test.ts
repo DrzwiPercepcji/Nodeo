@@ -27,12 +27,17 @@ interface FakeProc extends EventEmitter {
   stderr: EventEmitter;
 }
 
-function fakeChildProcess(stdoutData: string, exitCode: number): FakeProc {
+function fakeChildProcess(
+  stdoutData: string,
+  exitCode: number,
+  stderrData = '',
+): FakeProc {
   const proc = new EventEmitter() as FakeProc;
   proc.stdout = new EventEmitter();
   proc.stderr = new EventEmitter();
   queueMicrotask(() => {
     if (stdoutData) proc.stdout.emit('data', Buffer.from(stdoutData));
+    if (stderrData) proc.stderr.emit('data', Buffer.from(stderrData));
     proc.emit('close', exitCode);
   });
   return proc;
@@ -70,7 +75,7 @@ describe('downloadYouTubeAudio', () => {
   it('downloads audio and returns file path with detected title', async () => {
     spawnMock.mockImplementation(sequentialSpawn([
       () => fakeChildProcess('My Song Title\n', 0),
-      () => fakeChildProcess('[download] 100%\n', 0),
+      () => fakeChildProcess('', 0, '[download] 100%\n'),
     ]) as never);
 
     readdirMock.mockResolvedValue(['test-id-yt.webm'] as never);
@@ -112,7 +117,7 @@ describe('downloadYouTubeAudio', () => {
 
     spawnMock.mockImplementation(sequentialSpawn([
       () => fakeChildProcess('Title\n', 0),
-      () => fakeChildProcess(downloadOutput, 0),
+      () => fakeChildProcess('', 0, downloadOutput),
     ]) as never);
 
     readdirMock.mockResolvedValue(['media-yt.opus'] as never);

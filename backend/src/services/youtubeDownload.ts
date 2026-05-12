@@ -41,10 +41,11 @@ export async function downloadYouTubeAudio(
 
   await new Promise<void>((resolve, reject) => {
     const proc = spawn('yt-dlp', args, { stdio: ['ignore', 'pipe', 'pipe'] });
-    let stderr = '';
+    let stderrBuf = '';
 
-    proc.stdout.on('data', (chunk: Buffer) => {
+    proc.stderr.on('data', (chunk: Buffer) => {
       const text = chunk.toString();
+      stderrBuf += text;
       const match = text.match(/\[download\]\s+(\d+(?:\.\d+)?)%/);
       if (match) {
         const dlPct = parseFloat(match[1]);
@@ -58,11 +59,9 @@ export async function downloadYouTubeAudio(
       }
     });
 
-    proc.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
-
     proc.on('close', (code) => {
       if (code === 0) resolve();
-      else reject(new Error(`yt-dlp exited with code ${code}: ${stderr.slice(-500)}`));
+      else reject(new Error(`yt-dlp exited with code ${code}: ${stderrBuf.slice(-500)}`));
     });
 
     proc.on('error', (err) => {
