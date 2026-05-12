@@ -127,6 +127,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/collections/{id}/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Import media from an external source */
+        post: operations["importMedia"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/media/{id}": {
         parameters: {
             query?: never;
@@ -252,7 +269,7 @@ export interface components {
         /** @description Live job progress while status is processing (in-memory on the backend) */
         MediaProcessingProgress: {
             /** @enum {string} */
-            stage: "transcoding" | "thumbnails" | "encrypting" | "uploading_main" | "uploading_thumbs";
+            stage: "downloading" | "transcoding" | "thumbnails" | "encrypting" | "uploading_main" | "uploading_thumbs";
             overall_percent: number;
             /** @description Encoder timeline position during transcoding when known */
             current_sec?: number | null;
@@ -283,6 +300,19 @@ export interface components {
             metadata?: components["schemas"]["MediaMetadata"] | null;
             /** @description Only while status is processing; null if the server restarted mid-job */
             progress?: components["schemas"]["MediaProcessingProgress"] | null;
+        };
+        ImportRequest: {
+            /** @description Import source plugin identifier */
+            source: string;
+            /** @description URL to import from */
+            url: string;
+            /** @description Optional title override (auto-detected if omitted) */
+            title?: string;
+            /**
+             * @default mp3-192
+             * @enum {string}
+             */
+            profile: "mp3-128" | "mp3-192" | "mp3-320" | "aac-256";
         };
         UploadResponse: {
             /** Format: uuid */
@@ -599,6 +629,50 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UploadResponse"];
+                };
+            };
+            /** @description Collection is locked */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    importMedia: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportRequest"];
+            };
+        };
+        responses: {
+            /** @description Import accepted, downloading and processing started */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadResponse"];
+                };
+            };
+            /** @description Invalid request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
                 };
             };
             /** @description Collection is locked */

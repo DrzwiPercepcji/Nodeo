@@ -12,6 +12,7 @@ import Tag from 'primevue/tag'
 import UploadDialog from '@/components/UploadDialog.vue'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 import type { components } from '@/api/schema'
+import type { ImportSubmitPayload } from '@/plugins/externalSources/types'
 import { mediaMetadataSubtitle } from '@/utils/mediaMetadataDisplay'
 
 type Media = components['schemas']['Media']
@@ -36,6 +37,7 @@ type MediaProgress = NonNullable<Media['progress']>
 const processingProgress = ref<Record<string, MediaProgress>>({})
 
 const STAGE_LABEL: Record<MediaProgress['stage'], string> = {
+  downloading: 'Downloading',
   transcoding: 'Transcoding',
   thumbnails: 'Thumbnails',
   encrypting: 'Encrypting',
@@ -117,6 +119,20 @@ async function handleUpload(data: { file: File; title: string; description: stri
   } catch {
     uploadDialogRef.value?.done()
     toast.add({ severity: 'error', summary: 'Error', detail: 'Upload failed', life: 3000 })
+  }
+}
+
+async function handleImport(data: ImportSubmitPayload) {
+  try {
+    const mediaId = await mediaStore.importExternal(collectionId, data)
+    uploadDialogRef.value?.done()
+    showUpload.value = false
+    toast.add({ severity: 'info', summary: 'Importing', detail: 'Download started, processing in progress...', life: 5000 })
+    await mediaStore.fetchByCollection(collectionId)
+    pollStatus(mediaId)
+  } catch {
+    uploadDialogRef.value?.done()
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Import failed', life: 3000 })
   }
 }
 
@@ -375,6 +391,7 @@ function openMedia(media: Media) {
       v-model:visible="showUpload"
       :collection-id="collectionId"
       @upload="handleUpload"
+      @import="handleImport"
     />
 
     <ConfirmDeleteDialog

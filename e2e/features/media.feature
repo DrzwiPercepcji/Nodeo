@@ -1,5 +1,6 @@
 Feature: Collections and media upload
-  As a signed-in user I want to create a collection and upload audio or video.
+  As a signed-in user I want to create a collection and upload audio or video,
+  or import media from external sources like YouTube.
 
   Background:
     Given I am logged in as "e2e-admin" with password "e2e-secret"
@@ -44,3 +45,17 @@ Feature: Collections and media upload
     Then I see the delete confirmation dialog
     When I confirm the delete dialog
     Then the media "E2E delete me" is gone
+
+  @youtube @external
+  Scenario: Import a song from YouTube
+    When I create a collection named "E2E YouTube"
+    Then I see the collection card "E2E YouTube"
+    When I open the collection "E2E YouTube"
+    Then the collection page shows title "E2E YouTube"
+    When I click the upload media button
+    And I switch to the External tab in the upload dialog
+    And I select the "Single YouTube Song" plugin
+    And I enter YouTube URL "https://www.youtube.com/watch?v=zw79RVnlCb0"
+    And I enter import title "E2E YT track"
+    And I click the import button
+    Then the media "E2E YT track" is ready

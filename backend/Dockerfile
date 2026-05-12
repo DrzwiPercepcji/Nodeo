@@ -12,7 +12,8 @@ RUN npm run build
 
 FROM node:24-alpine
 
-RUN apk add --no-cache ffmpeg su-exec
+RUN apk add --no-cache ffmpeg su-exec python3 py3-pip \
+ && pip3 install --no-cache-dir --break-system-packages yt-dlp
 
 WORKDIR /app
 

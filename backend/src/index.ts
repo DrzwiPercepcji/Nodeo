@@ -12,6 +12,7 @@ import migrate from './db/migrate.js';
 import authRoutes from './routes/auth.js';
 import collectionsRoutes from './routes/collections.js';
 import mediaRoutes from './routes/media.js';
+import importRoutes from './routes/import.js';
 import { disconnectStreamCache } from './services/streamCache.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -44,6 +45,7 @@ app.get('/api/openapi.yaml', (_req, res) => {
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/collections', collectionsRoutes);
 app.use('/api', mediaRoutes);
+app.use('/api', importRoutes);
 
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   console.error(err.stack || err.message);

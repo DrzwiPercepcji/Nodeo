@@ -164,7 +164,7 @@ components:
       properties:
         stage:
           type: string
-          enum: [transcoding, thumbnails, encrypting, uploading_main, uploading_thumbs]
+          enum: [downloading, transcoding, thumbnails, encrypting, uploading_main, uploading_thumbs]
         overall_percent:
           type: integer
           minimum: 0
@@ -227,6 +227,24 @@ components:
             - $ref: '#/components/schemas/MediaProcessingProgress'
           nullable: true
           description: Only while status is processing; null if the server restarted mid-job
+
+    ImportRequest:
+      type: object
+      required: [source, url]
+      properties:
+        source:
+          type: string
+          description: Import source plugin identifier
+        url:
+          type: string
+          description: URL to import from
+        title:
+          type: string
+          description: Optional title override (auto-detected if omitted)
+        profile:
+          type: string
+          enum: ['mp3-128', 'mp3-192', 'mp3-320', 'aac-256']
+          default: 'mp3-192'
 
     UploadResponse:
       type: object
@@ -506,6 +524,46 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UploadResponse'
+        '403':
+          description: Collection is locked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /collections/{id}/import:
+    post:
+      operationId: importMedia
+      summary: Import media from an external source
+      tags: [media]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportRequest'
+      responses:
+        '202':
+          description: Import accepted, downloading and processing started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '403':
           description: Collection is locked
           content:
