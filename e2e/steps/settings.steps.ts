@@ -25,9 +25,18 @@ When('I enter cookie data {string}', async function (this: NodeoWorld, data: str
 })
 
 When('I save the cookie settings', async function (this: NodeoWorld) {
-  await this.page.getByRole('button', { name: 'Save' }).click()
+  await Promise.all([
+    this.page.waitForResponse(
+      (r) =>
+        r.url().includes('/settings/ytdlp-cookies')
+        && r.request().method() === 'PUT'
+        && r.ok(),
+      { timeout: 15_000 },
+    ),
+    this.page.getByRole('button', { name: 'Save' }).click(),
+  ])
 })
 
 Then('the cookie status shows masked value', async function (this: NodeoWorld) {
-  await expect(this.page.getByText('••••••••••••••••')).toBeVisible()
+  await expect(this.page.getByTestId('ytdlp-cookies-masked')).toBeVisible()
 })

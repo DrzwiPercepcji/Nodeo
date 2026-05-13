@@ -59,7 +59,10 @@ async function saveCookies() {
                 v-if="settings.ytdlpCookiesConfigured"
                 class="cookie-status configured"
               >
-                <span class="masked-value">••••••••••••••••</span>
+                <span
+                  class="masked-value"
+                  data-testid="ytdlp-cookies-masked"
+                >••••••••••••••••</span>
                 <Button
                   icon="pi pi-pencil"
                   text
