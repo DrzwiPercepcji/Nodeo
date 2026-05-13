@@ -21,20 +21,27 @@ When('I click the upload cookie button', async function (this: NodeoWorld) {
 
 When('I enter cookie data {string}', async function (this: NodeoWorld, data: string) {
   const unescaped = data.replace(/\\n/g, '\n').replace(/\\t/g, '\t')
-  await this.page.locator('textarea').fill(unescaped)
+  await this.page.getByPlaceholder('Paste Netscape cookie file content here').fill(unescaped)
 })
 
 When('I save the cookie settings', async function (this: NodeoWorld) {
-  await Promise.all([
-    this.page.waitForResponse(
-      (r) =>
-        r.url().includes('/settings/ytdlp-cookies')
-        && r.request().method() === 'PUT'
-        && r.ok(),
-      { timeout: 15_000 },
-    ),
-    this.page.getByRole('button', { name: 'Save' }).click(),
+  const saveBtn = this.page.getByRole('button', { name: 'Save' })
+  await expect(saveBtn).toBeEnabled({ timeout: 10_000 })
+
+  const matchesPut = (r: { url: () => string; request: () => { method: () => string } }) =>
+    r.url().includes('/settings/ytdlp-cookies') && r.request().method() === 'PUT'
+
+  const [response] = await Promise.all([
+    this.page.waitForResponse(matchesPut, { timeout: 15_000 }),
+    saveBtn.click(),
   ])
+
+  if (!response.ok()) {
+    const body = await response.text().catch(() => '')
+    throw new Error(
+      `PUT /api/settings/ytdlp-cookies failed: HTTP ${response.status()} ${response.statusText()}. Body: ${body.slice(0, 500)}`,
+    )
+  }
 })
 
 Then('the cookie status shows masked value', async function (this: NodeoWorld) {
