@@ -13,8 +13,10 @@ services:
     env_file: .env
     environment:
       NODEO_TEMP_DIR: /data/nodeo-tmp
+      NODEO_DATA_DIR: /data/nodeo-data
     volumes:
       - nodeo_backend_tmp:/data/nodeo-tmp
+      - nodeo_backend_data:/data/nodeo-data
     ports:
       - "${BACKEND_PORT:-3000}:3000"
 
@@ -29,3 +31,4 @@ services:
 
 volumes:
   nodeo_backend_tmp:
+  nodeo_backend_data:

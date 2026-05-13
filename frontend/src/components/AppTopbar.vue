@@ -40,6 +40,14 @@ function handleLogout() {
         severity="secondary"
         @click="theme.toggle()"
       />
+      <Button
+        icon="pi pi-cog"
+        text
+        rounded
+        severity="secondary"
+        aria-label="Settings"
+        @click="router.push('/settings')"
+      />
       <span class="username">{{ auth.username }}</span>
       <Button
         icon="pi pi-sign-out"

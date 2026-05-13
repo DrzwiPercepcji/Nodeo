@@ -1,7 +1,18 @@
 import { spawn } from 'node:child_process';
-import { readdir } from 'node:fs/promises';
+import { readdir, access } from 'node:fs/promises';
 import { join } from 'node:path';
 import { setMediaJobProgress } from './processingProgress.js';
+import { getYtdlpCookiesPath } from './ytdlpCookies.js';
+
+async function cookiesArgs(): Promise<string[]> {
+  const path = getYtdlpCookiesPath();
+  try {
+    await access(path);
+    return ['--cookies', path];
+  } catch {
+    return [];
+  }
+}
 
 export interface YouTubeDownloadResult {
   filePath: string;
@@ -18,7 +29,8 @@ export async function downloadYouTubeAudio(
   url: string,
   tempDir: string,
 ): Promise<YouTubeDownloadResult> {
-  const title = await getYouTubeTitle(url);
+  const cookies = await cookiesArgs();
+  const title = await getYouTubeTitle(url, cookies);
 
   const filePrefix = `${mediaId}-yt`;
   const outputTemplate = join(tempDir, `${filePrefix}.%(ext)s`);
@@ -31,6 +43,7 @@ export async function downloadYouTubeAudio(
   });
 
   const args = [
+    ...cookies,
     '--no-playlist',
     '-f', 'bestaudio',
     '-o', outputTemplate,
@@ -82,9 +95,9 @@ export async function downloadYouTubeAudio(
   return { filePath: join(tempDir, downloaded), title };
 }
 
-async function getYouTubeTitle(url: string): Promise<string> {
+async function getYouTubeTitle(url: string, cookies: string[]): Promise<string> {
   return new Promise((resolve) => {
-    const proc = spawn('yt-dlp', ['--get-title', '--no-playlist', url], {
+    const proc = spawn('yt-dlp', [...cookies, '--get-title', '--no-playlist', url], {
       stdio: ['ignore', 'pipe', 'pipe'],
     });
 
